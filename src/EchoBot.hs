@@ -112,7 +112,7 @@ newtype State = State
 makeState :: Config -> Either Text State
 makeState conf = do
   checkConfig conf
-  pure State {stRepetitionCount = confRepetitionCount conf}
+  return State {stRepetitionCount = confRepetitionCount conf}
 
 checkConfig :: Config -> Either Text ()
 checkConfig conf =
@@ -130,9 +130,10 @@ respond h (MessageEvent message)
   | otherwise = respondWithEchoedMessage h message
 
 isCommand :: Handle m a -> T.Text -> a -> Bool
-isCommand h _ message = case hTextFromMessage h message of
+isCommand h command message = case hTextFromMessage h message of
   Nothing -> False
-  Just _ -> error "Not implemented"
+  Just messageText -> command `T.isPrefixOf` messageText
+
 
 handleHelpCommand :: Monad m => Handle m a -> m [Response a]
 handleHelpCommand h = do
@@ -151,6 +152,8 @@ handleRepeatCommand h = do
 
 respondWithEchoedMessage :: Monad m => Handle m a -> a -> m [Response a]
 respondWithEchoedMessage h message = do
-  Logger.logInfo (hLogHandle h) $
-    "Echoing user input: " .< fromMaybe "<multimedia?>" (hTextFromMessage h message)
-  error "Not implemented"
+  -- Logger.logInfo (hLogHandle h) $
+  --   "Echoing user input: " .< fromMaybe "<multimedia?>" (hTextFromMessage h message)
+  state <- hGetState h
+  let count = stRepetitionCount state
+  return $ replicate count (MessageResponse message)
