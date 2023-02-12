@@ -149,7 +149,7 @@ handleHelpCommand h = do
 handleSettingRepetitionCount :: Monad m => Handle m a -> Int -> m [Response a]
 handleSettingRepetitionCount h count = do
   -- Logger.logInfo (hLogHandle h) $ "The user has set the repetition count to " .< count
-  hModifyState' h (\_ -> count)
+  hModifyState' h (const $ State count)
   let a = hMessageFromText h . confRepeatReply . hConfig $ h
   return [MessageResponse a]
 
