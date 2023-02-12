@@ -24,7 +24,7 @@ data Level
   | Info
   | Warning
   | Error
-  deriving (Show, Eq, Ord)
+  deriving (Read, Show, Eq, Ord)
 
 logDebug, logInfo, logWarning, logError :: Handle m -> T.Text -> m ()
 logDebug h = hLowLevelLog h Debug
