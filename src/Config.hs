@@ -9,14 +9,14 @@ module Config (
 where
 
 import ConfigurationTypes qualified
+import Data.Maybe (fromJust)
 import Data.Text qualified as T
+import Debug.Trace (traceShow)
 import EchoBot qualified
+import Logger (Level (Debug))
 import Logger.Impl qualified
 import System.IO (IOMode (WriteMode), openFile)
 import Text.JSON
-import Data.Maybe (fromJust)
-import Debug.Trace (traceShow)
-import Logger (Level(Debug))
 
 {- | Gets the bot config. In any case it can provide reasonable
  default values.
@@ -33,13 +33,13 @@ getBotConfig =
 getLoggerConfig :: IO Logger.Impl.Config
 getLoggerConfig = do
   configJSObject <- readConfig
-  let config = fromJSObject configJSObject
-  let logLevel = read $ fromJust $ lookup "minLevel" config
-  let path = fromJust $ lookup "file" config
+  let config = fromJSObject configJSObject -- FIX later handle errors
+  let logLevel = read . fromJust . lookup "minLevel" $ config
+  let path = fromJust . lookup "file" $ config
   handle <- openFile path WriteMode
   return $
     Logger.Impl.Config
-      { Logger.Impl.confFileHandle = traceShow handle handle
+      { Logger.Impl.confFileHandle = handle
       , Logger.Impl.confMinLevel = logLevel
       }
 

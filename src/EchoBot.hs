@@ -1,3 +1,4 @@
+{-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 {- | The pure echo-bot logic module. It doesn't know anything about
@@ -17,9 +18,9 @@ where
 
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
-import qualified Data.Text as T
+import Data.Text qualified as T
 import Logger ((.<))
-import qualified Logger
+import Logger qualified
 
 {- | The bot dependencies that the caller code should satisfy.
 
@@ -129,7 +130,6 @@ checkConfig conf =
 respond :: Monad m => Handle m a -> Event a -> m [Response a]
 respond h (SetRepetitionCountEvent repetitionCount) =
   handleSettingRepetitionCount h repetitionCount
-
 respond h (MessageEvent message)
   | isCommand h "/help" message = handleHelpCommand h
   | isCommand h "/repeat" message = handleRepeatCommand h
@@ -142,27 +142,28 @@ isCommand h command message = case hTextFromMessage h message of
 
 handleHelpCommand :: Monad m => Handle m a -> m [Response a]
 handleHelpCommand h = do
-  -- Logger.logInfo (hLogHandle h) "Got the help command"
+  Logger.logInfo (hLogHandle h) "Got the help command"
   let a = hMessageFromText h . confHelpReply . hConfig $ h
   return [MessageResponse a]
 
 handleSettingRepetitionCount :: Monad m => Handle m a -> Int -> m [Response a]
 handleSettingRepetitionCount h count = do
-  -- Logger.logInfo (hLogHandle h) $ "The user has set the repetition count to " .< count
+  Logger.logInfo (hLogHandle h) $ "The user has set the repetition count to " .< count
   hModifyState' h (const $ State count)
   let a = hMessageFromText h . confRepeatReply . hConfig $ h
   return [MessageResponse a]
 
+-- TODO
 handleRepeatCommand :: Monad m => Handle m a -> m [Response a]
 handleRepeatCommand h = do
-  -- Logger.logInfo (hLogHandle h) "Got the repeat command"
+  Logger.logInfo (hLogHandle h) "Got the repeat command"
 
   error "Not implemented"
 
 respondWithEchoedMessage :: Monad m => Handle m a -> a -> m [Response a]
 respondWithEchoedMessage h message = do
-  -- Logger.logInfo (hLogHandle h) $
-  --   "Echoing user input: " .< fromMaybe "<multimedia?>" (hTextFromMessage h message)
+  Logger.logInfo (hLogHandle h) $
+    "Echoing user input: " .< fromMaybe "<multimedia?>" (hTextFromMessage h message)
   state <- hGetState h
   let count = stRepetitionCount state
   return $ replicate count (MessageResponse message)
