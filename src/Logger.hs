@@ -2,13 +2,13 @@
 -- implementation.
 module Logger
   ( Handle (..),
-    Level (..),
-    logDebug,
-    logInfo,
-    logWarning,
-    logError,
-    (.<),
-  )
+  Level (..),
+  logDebug,
+  logInfo,
+  logWarning,
+  logError,
+  (.<),
+)
 where
 
 import qualified Data.Text as T

@@ -150,15 +150,37 @@ handleSettingRepetitionCount :: Monad m => Handle m a -> Int -> m [Response a]
 handleSettingRepetitionCount h count = do
   Logger.logInfo (hLogHandle h) $ "The user has set the repetition count to " .< count
   hModifyState' h (const $ State count)
-  let a = hMessageFromText h . confRepeatReply . hConfig $ h
+  (State c) <- hGetState h
+  -- FIX unpacking/packing
+  let a = hMessageFromText h . T.pack . (\x -> replaceAll x "{count}" (show c)) . T.unpack . confRepeatReply . hConfig $ h
   return [MessageResponse a]
 
--- TODO
+
+commonPrefixLength :: Ord a => [a] -> [a] -> Int
+commonPrefixLength a = length . takeWhile (== EQ) . zipWith compare a
+
+replaceAll :: String -> String -> String -> String
+replaceAll "" _ _ = ""
+replaceAll x a b =
+  let
+    la = length a
+    pl = commonPrefixLength x a
+    pl1 = (pl + 1)
+    prefix
+      | pl == la = b
+      | otherwise = take pl1 x
+   in
+    prefix ++ replaceAll (drop pl1 x) a b
+
+
 handleRepeatCommand :: Monad m => Handle m a -> m [Response a]
 handleRepeatCommand h = do
   Logger.logInfo (hLogHandle h) "Got the repeat command"
-
-  error "Not implemented"
+  let variants = [1 .. 5]
+  a <- hGetState h
+  let count = stRepetitionCount a
+  let message = "Current repetition count is: " ++ show count
+  return [(MessageResponse . hMessageFromText h . T.pack ) message, MenuResponse "choose repeat amount" (zip variants (SetRepetitionCountEvent <$> variants))]
 
 respondWithEchoedMessage :: Monad m => Handle m a -> a -> m [Response a]
 respondWithEchoedMessage h message = do
