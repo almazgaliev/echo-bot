@@ -4,5 +4,3 @@ resolver:
 
 packages:
   - .
-extra-deps:
-  - json-0.10

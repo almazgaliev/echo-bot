@@ -1,10 +1,10 @@
 name: echo-bot
-version: 0.1.0.0
-github: "unknown/unknown"
-license: BSD3
-author: "John Doe"
-maintainer: "unknown@example.com"
-copyright: "John Doe"
+version: 0.0.1.0
+github: "almazgaliev/echo-bot"
+license: LGPL-3
+author: "Almaz Galiev"
+maintainer: "almazgaliev99@gmail.com"
+copyright: "Almaz Galiev"
 
 extra-source-files:
   - README.md
@@ -24,7 +24,13 @@ dependencies:
   - mtl
   - QuickCheck
   - hspec
-  - json
+  - aeson
+  - bytestring
+  - http-types
+  - http-client
+  - http-client-tls
+  - http-conduit
+  - filepath
 
 ghc-options:
   - -Wall

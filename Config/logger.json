@@ -1,0 +1,4 @@
+{
+	"handle": "./logs.log",
+	"minLevel": "Debug"
+}

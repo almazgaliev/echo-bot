@@ -1,0 +1,8 @@
+{
+	"conf": {
+		"confHelpReply": "This is help message",
+		"confRepeatReply": "Repeat count is {count}",
+		"confRepetitionCount": 4
+	},
+	"frontend": "TelegramFrontEnd"
+}

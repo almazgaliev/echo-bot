@@ -1,5 +1,4 @@
 {-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 -- | The default implementation of the Logger interface.
 module Logger.Impl (
@@ -13,10 +12,10 @@ import Data.Text qualified as T
 import Data.Text.IO (hPutStrLn)
 import GHC.IO.Handle (hFlush)
 import Logger qualified
-import System.IO qualified
+import qualified GHC.IO.Handle.Types
 
 data Config = Config
-  { confFileHandle :: System.IO.Handle
+  { confHandle :: GHC.IO.Handle.Types.Handle
   -- ^ A file handle to output formatted log messages to with
   -- 'System.IO.hPutStrLn' or 'Data.Text.IO.hPutStrLn'. For example,
   -- it might be 'System.IO.stderr' or a handle of a regular open
@@ -32,6 +31,6 @@ withHandle config f = f Logger.Handle {Logger.hLowLevelLog = logWith config}
 logWith :: Config -> Logger.Level -> T.Text -> IO ()
 logWith c level t = when (level >= confMinLevel c) $
  do
-  let h = confFileHandle c
+  let h = confHandle c
   hPutStrLn h t
   hFlush h

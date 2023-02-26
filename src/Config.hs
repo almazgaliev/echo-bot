@@ -1,4 +1,6 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 -- | A module to provide a configuration reader for other modules.
 module Config (
@@ -9,44 +11,88 @@ module Config (
 where
 
 import ConfigurationTypes qualified
-import Data.Maybe (fromJust)
 import Data.Text qualified as T
 import EchoBot qualified
+import Logger qualified
 import Logger.Impl qualified
-import System.IO (IOMode (..), openFile)
-import Text.JSON
+import System.FilePath (isValid)
+import System.IO (IOMode (..), openFile, stderr, stdout)
+
+import Data.Aeson (FromJSON (parseJSON), KeyValue ((.=)), ToJSON (toJSON), eitherDecode', object, withObject, withText, (.:))
+import Data.Aeson.Types qualified as AT
+import Data.ByteString.Lazy.Char8 qualified as BSL
+import Data.Text (unpack)
+import GHC.Generics (Generic)
+
+data BotConfig = BotConfig {frontend :: ConfigurationTypes.FrontEndType, conf :: EchoBot.Config} deriving (Generic)
+
+instance FromJSON BotConfig
+instance ToJSON BotConfig
+
+data ValidHandle = FileHandle FilePath | Stdout | Stderr
+
+instance FromJSON ValidHandle where
+  parseJSON =
+    let
+      f "stdout" = return Stdout
+      f "stderr" = return Stderr
+      f path | isValid path = return $ FileHandle path
+      f hnd = fail $ "handle: \"" ++ hnd ++ "\" is invalid. valid values are stderr, stdout or any valid file path"
+     in
+      withText "Handle" (f . unpack)
+instance ToJSON ValidHandle where
+  toJSON (FileHandle f) = AT.String . T.pack $ f
+  toJSON Stdout = AT.String "stdout"
+  toJSON Stderr = AT.String "stderr"
+
+data ValidLoggerConfig = LoggerConfig {handle :: ValidHandle, minLevel :: Logger.Level}
+
+instance ToJSON ValidLoggerConfig where
+  toJSON LoggerConfig {handle = h, minLevel = lvl} = object ["handle" .= h, "minLevel" .= lvl]
+
+instance FromJSON ValidLoggerConfig where
+  parseJSON = withObject "LoggerConfig" $ \v ->
+    LoggerConfig
+      <$> v
+      .: "handle"
+      <*> v
+      .: "minLevel"
+
 
 {- | Gets the bot config. In any case it can provide reasonable
  default values.
 -}
 getBotConfig :: IO EchoBot.Config
-getBotConfig =
-  return $
-    EchoBot.Config
-      { EchoBot.confHelpReply = T.pack "this is help message"
-      , EchoBot.confRepeatReply = T.pack "The new repetition count is {count}."
-      , EchoBot.confRepetitionCount = 2
-      }
+getBotConfig = do
+  json <- BSL.readFile "Config/botConfig.json"
+  let res = eitherDecode' json :: Either String BotConfig
+  case res of
+    Right config -> do
+      return . conf $ config
+    Left msg -> fail msg
 
 getLoggerConfig :: IO Logger.Impl.Config
 getLoggerConfig = do
-  configJSObject <- readConfig
-  let config = fromJSObject configJSObject -- FIX later handle errors
-  let logLevel = read . fromJust . lookup "minLevel" $ config
-  let path = fromJust . lookup "file" $ config
-  handle <- openFile path AppendMode
-  return $
-    Logger.Impl.Config
-      { Logger.Impl.confFileHandle = handle
-      , Logger.Impl.confMinLevel = logLevel
-      }
-
-readConfig :: IO (JSObject String)
-readConfig = do
-  s <- readFile "logger.json"
-  case Text.JSON.decodeStrict s of
-    Text.JSON.Error msg -> error msg
-    Ok obj -> return obj
+  json <- BSL.readFile "Config/logger.json"
+  let res = eitherDecode' json
+  case res of
+    Right config -> do
+      h <- case handle config of
+        FileHandle s -> openFile s AppendMode
+        Stdout -> pure stdout
+        Stderr -> pure stderr
+      return
+        Logger.Impl.Config
+          { Logger.Impl.confHandle = h
+          , Logger.Impl.confMinLevel = minLevel config
+          }
+    Left msg -> fail msg
 
 getFrontEndType :: IO ConfigurationTypes.FrontEndType
-getFrontEndType = return ConfigurationTypes.ConsoleFrontEnd
+getFrontEndType = do
+  json <- BSL.readFile "Config/botConfig.json"
+  let res = eitherDecode' json
+  case res of
+    Right config -> do
+      return $ frontend config
+    Left msg -> fail msg

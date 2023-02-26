@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -16,9 +17,11 @@ module EchoBot (
 )
 where
 
+import Data.Aeson (FromJSON, ToJSON)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import Data.Text qualified as T
+import GHC.Generics (Generic)
 import Logger ((.<))
 import Logger qualified
 
@@ -71,6 +74,10 @@ data Config = Config
   -- ^ The initial repetition count for echoing messages to start
   -- with.
   }
+  deriving (Generic)
+
+instance FromJSON Config -- проверить если confRepetitionCount в пределах от 1 до 5
+instance ToJSON Config
 
 {- | An external event that the bot should process and respond to.
  It's parameterized with a message type.
@@ -155,7 +162,6 @@ handleSettingRepetitionCount h count = do
   let a = hMessageFromText h . T.pack . (\x -> replaceAll x "{count}" (show c)) . T.unpack . confRepeatReply . hConfig $ h
   return [MessageResponse a]
 
-
 commonPrefixLength :: Ord a => [a] -> [a] -> Int
 commonPrefixLength a = length . takeWhile (== EQ) . zipWith compare a
 
@@ -180,7 +186,7 @@ handleRepeatCommand h = do
   a <- hGetState h
   let count = stRepetitionCount a
   let message = "Current repetition count is: " ++ show count
-  return [(MessageResponse . hMessageFromText h . T.pack ) message, MenuResponse "choose repeat amount" (zip variants (SetRepetitionCountEvent <$> variants))]
+  return [(MessageResponse . hMessageFromText h . T.pack) message, MenuResponse "choose repeat amount" (zip variants (SetRepetitionCountEvent <$> variants))]
 
 respondWithEchoedMessage :: Monad m => Handle m a -> a -> m [Response a]
 respondWithEchoedMessage h message = do
