@@ -1,12 +1,14 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveAnyClass #-}
 
 -- | A module to provide a configuration reader for other modules.
 module Config (
   getBotConfig,
   getLoggerConfig,
   getFrontEndType,
+  tokenPath
 )
 where
 
@@ -18,7 +20,7 @@ import Logger.Impl qualified
 import System.FilePath (isValid)
 import System.IO (IOMode (..), openFile, stderr, stdout)
 
-import Data.Aeson (FromJSON (parseJSON), KeyValue ((.=)), ToJSON (toJSON), eitherDecode', object, withObject, withText, (.:))
+import Data.Aeson (FromJSON , ToJSON, eitherDecode', withText)
 import Data.Aeson.Types qualified as AT
 import Data.ByteString.Lazy.Char8 qualified as BSL
 import Data.Text (unpack)
@@ -45,18 +47,9 @@ instance ToJSON ValidHandle where
   toJSON Stdout = AT.String "stdout"
   toJSON Stderr = AT.String "stderr"
 
-data ValidLoggerConfig = LoggerConfig {handle :: ValidHandle, minLevel :: Logger.Level}
+data ValidLoggerConfig = LoggerConfig {handle :: ValidHandle, minLevel :: Logger.Level} deriving (Generic, FromJSON)
 
-instance ToJSON ValidLoggerConfig where
-  toJSON LoggerConfig {handle = h, minLevel = lvl} = object ["handle" .= h, "minLevel" .= lvl]
 
-instance FromJSON ValidLoggerConfig where
-  parseJSON = withObject "LoggerConfig" $ \v ->
-    LoggerConfig
-      <$> v
-      .: "handle"
-      <*> v
-      .: "minLevel"
 
 
 {- | Gets the bot config. In any case it can provide reasonable
@@ -96,3 +89,6 @@ getFrontEndType = do
     Right config -> do
       return $ frontend config
     Left msg -> fail msg
+
+tokenPath :: String
+tokenPath = "Config/token.txt"
