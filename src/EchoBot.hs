@@ -178,7 +178,6 @@ replaceAll x a b =
    in
     prefix ++ replaceAll (drop pl1 x) a b
 
-
 handleRepeatCommand :: Monad m => Handle m a -> m [Response a]
 handleRepeatCommand h = do
   Logger.logInfo (hLogHandle h) "Got the repeat command"

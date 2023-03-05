@@ -1,27 +1,22 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module TelegramAPI (
+module TelegramAPI.Raw (
   sendMessage,
   getUpdates,
 ) where
 
 import Data.ByteString.Char8 (pack)
 import Data.ByteString.Lazy.Internal (ByteString)
-import Network.HTTP.Client (Manager, Response, httpLbs, newManager, parseRequest)
+import Network.HTTP.Client (Manager, Response, httpLbs, parseRequest)
 
-import Network.HTTP.Client.TLS (tlsManagerSettings)
 import Network.HTTP.Simple (
-  getResponseBody,
-  getResponseHeader,
-  getResponseStatusCode,
-  parseRequest,
   setRequestBodyURLEncoded,
   setRequestMethod,
  )
 
+apiURL :: String
 apiURL = "https://api.telegram.org/"
 
--- manager <- newManager tlsManagerSettings
 sendMessage :: Manager -> String -> String -> Int -> IO (Response ByteString)
 sendMessage manager token message chatId = do
   let echoBody =
