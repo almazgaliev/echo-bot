@@ -13,7 +13,6 @@ import Data.Text.IO (hPutStrLn)
 import GHC.IO.Handle (hFlush)
 import Logger qualified
 import qualified GHC.IO.Handle.Types
-
 data Config = Config
   { confHandle :: GHC.IO.Handle.Types.Handle
   -- ^ A file handle to output formatted log messages to with
@@ -32,5 +31,5 @@ logWith :: Config -> Logger.Level -> T.Text -> IO ()
 logWith c level t = when (level >= confMinLevel c) $
  do
   let h = confHandle c
-  hPutStrLn h t
+  hPutStrLn h $ T.pack (show level ++ " | ") `T.append` t
   hFlush h
