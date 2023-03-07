@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 
 module ConfigurationTypes (
@@ -5,13 +6,10 @@ module ConfigurationTypes (
 )
 where
 
-import Data.Aeson (FromJSON, ToJSON)
-import GHC.Generics (Generic)
+import qualified Data.Aeson as Aeson (FromJSON)
+import qualified GHC.Generics as Generics (Generic)
 
 data FrontEndType
   = ConsoleFrontEnd
   | TelegramFrontEnd
-  deriving (Generic)
-
-instance FromJSON FrontEndType
-instance ToJSON FrontEndType
+  deriving (Generics.Generic, Aeson.FromJSON)
