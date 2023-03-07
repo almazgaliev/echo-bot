@@ -1,5 +1,3 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 {- | The pure echo-bot logic module. It doesn't know anything about
@@ -17,13 +15,10 @@ module EchoBot (
 )
 where
 
-import Data.Aeson (FromJSON, ToJSON)
 import Data.Maybe (fromMaybe)
-import Data.Text (Text)
-import Data.Text qualified as T
-import GHC.Generics (Generic)
+import qualified Data.Text as T
 import Logger ((.<))
-import Logger qualified
+import qualified Logger
 
 {- | The bot dependencies that the caller code should satisfy.
 
@@ -63,9 +58,9 @@ data Handle m a = Handle
 
 -- | The initial configuration of the bot.
 data Config = Config
-  { confHelpReply :: Text
+  { confHelpReply :: T.Text
   -- ^ A reply to the @help@ command
-  , confRepeatReply :: Text
+  , confRepeatReply :: T.Text
   -- ^ A reply to the @repeat@ command. The string of @{count}@ in
   -- the text will be replaced with the current repetition count, so
   -- that you can use a template string like @"The new repetition
@@ -74,10 +69,6 @@ data Config = Config
   -- ^ The initial repetition count for echoing messages to start
   -- with.
   }
-  deriving (Generic)
-
-instance FromJSON Config -- проверить если confRepetitionCount в пределах от 1 до 5
-instance ToJSON Config
 
 {- | An external event that the bot should process and respond to.
  It's parameterized with a message type.
@@ -106,7 +97,7 @@ data Response a
     MenuResponse Title [(RepetitionCount, Event a)]
   deriving (Eq, Show)
 
-type Title = Text
+type Title = T.Text
 
 type RepetitionCount = Int
 
@@ -122,12 +113,12 @@ newtype State = State
   }
 
 -- | Creates an initial, default bot state for a user.
-makeState :: Config -> Either Text State
+makeState :: Config -> Either T.Text State
 makeState conf = do
   checkConfig conf
   return State {stRepetitionCount = confRepetitionCount conf}
 
-checkConfig :: Config -> Either Text ()
+checkConfig :: Config -> Either T.Text ()
 checkConfig conf =
   if confRepetitionCount conf < 0
     then Left "The repetition count must not be negative"
@@ -156,27 +147,11 @@ handleHelpCommand h = do
 handleSettingRepetitionCount :: Monad m => Handle m a -> Int -> m [Response a]
 handleSettingRepetitionCount h count = do
   Logger.logInfo (hLogHandle h) $ "The user has set the repetition count to " .< count
+  let conf = hConfig h
   hModifyState' h (const $ State count)
   (State c) <- hGetState h
-  -- FIX unpacking/packing
-  let a = hMessageFromText h . T.pack . (\x -> replaceAll x "{count}" (show c)) . T.unpack . confRepeatReply . hConfig $ h
+  let a = hMessageFromText h . T.replace "{count}" (T.pack . show $ c) . confRepeatReply $ conf
   return [MessageResponse a]
-
-commonPrefixLength :: Ord a => [a] -> [a] -> Int
-commonPrefixLength a = length . takeWhile (== EQ) . zipWith compare a
-
-replaceAll :: String -> String -> String -> String
-replaceAll "" _ _ = ""
-replaceAll x a b =
-  let
-    la = length a
-    pl = commonPrefixLength x a
-    pl1 = (pl + 1)
-    prefix
-      | pl == la = b
-      | otherwise = take pl1 x
-   in
-    prefix ++ replaceAll (drop pl1 x) a b
 
 handleRepeatCommand :: Monad m => Handle m a -> m [Response a]
 handleRepeatCommand h = do
