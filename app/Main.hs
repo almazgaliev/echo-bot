@@ -1,23 +1,19 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Main (main) where
 
 import qualified Config
 import qualified ConfigurationTypes
 import qualified Data.IORef as DIOR
 import qualified Data.Text as T
-import qualified EchoBot
+import qualified EchoBot as EB
 import qualified FrontEnd.Console
 import qualified FrontEnd.Telegram
-import Network.HTTP.Client (Manager, newManager)
-import Network.HTTP.Client.TLS (tlsManagerSettings)
+import qualified Network.HTTP.Conduit as Conduit (Manager, newManager, tlsManagerSettings)
 
 import qualified Data.Map as DM
-import Logger (logInfo, (.<))
 import qualified Logger
 import qualified Logger.Impl
-import System.Exit (die)
-import qualified TelegramAPI.Wrappers as TW
+import qualified System.Exit as Exit (die)
+import qualified TelegramAPI
 
 main :: IO ()
 main = do
@@ -26,31 +22,27 @@ main = do
     case frontEnd of
       ConfigurationTypes.TelegramFrontEnd -> do
         token <- readFile Config.tokenPath
-        manager <- newManager tlsManagerSettings
+        manager <- Conduit.newManager Conduit.tlsManagerSettings
         runTelegramFrontEnd logHandle manager token
       ConfigurationTypes.ConsoleFrontEnd -> do
         botHandle <- makeBotHandleForPlainText logHandle
         runConsoleFrontEnd botHandle
 
-runConsoleFrontEnd :: EchoBot.Handle IO T.Text -> IO ()
+runConsoleFrontEnd :: EB.Handle IO T.Text -> IO ()
 runConsoleFrontEnd botHandle =
   FrontEnd.Console.run
     FrontEnd.Console.Handle {FrontEnd.Console.hBotHandle = botHandle}
 
-runTelegramFrontEnd :: Logger.Handle IO -> Manager -> String -> IO ()
-runTelegramFrontEnd logHandle manager token = do
-  res <- TW.getUpdates manager token
-  case res of
-    Left s -> logInfo logHandle $ "getUpdates:" .< s
-    Right ui -> do
-      handle <- makeBotHandleForTelegram logHandle
-      let m = DM.fromList $ zip (TW.id . TW.chatInfo . TW.message <$> TW.result ui) (repeat handle)
-      FrontEnd.Telegram.run
-        FrontEnd.Telegram.Handle {
-          FrontEnd.Telegram.hBotHandle = m,
-          FrontEnd.Telegram.hManager = manager,
-          FrontEnd.Telegram.hToken = token
-        }
+runTelegramFrontEnd :: Logger.Handle IO -> Conduit.Manager -> TelegramAPI.APIToken -> IO ()
+runTelegramFrontEnd logHandle manager token =
+  FrontEnd.Telegram.run
+    FrontEnd.Telegram.Handle
+      { FrontEnd.Telegram.hBotHandle = DM.empty
+      , FrontEnd.Telegram.hManager = manager
+      , FrontEnd.Telegram.hToken = token
+      , FrontEnd.Telegram.hOffset = 0
+      }
+    logHandle
 
 withLogHandle :: (Logger.Handle IO -> IO ()) -> IO ()
 withLogHandle f = do
@@ -73,32 +65,17 @@ withLogHandle f = do
    multimedia messages. You will need to specify different functions
    @hMessageFromText@ and @hTextFromMessage@.
 -}
-makeBotHandleForPlainText :: Logger.Handle IO -> IO (EchoBot.Handle IO T.Text)
+makeBotHandleForPlainText :: Logger.Handle IO -> IO (EB.Handle IO T.Text)
 makeBotHandleForPlainText logHandle = do
   botConfig <- Config.getBotConfig
-  initialState <- either (die . T.unpack) pure $ EchoBot.makeState botConfig
+  initialState <- either (Exit.die . T.unpack) pure $ EB.makeState botConfig
   stateRef <- DIOR.newIORef initialState
-  pure
-    EchoBot.Handle
-      { EchoBot.hGetState = DIOR.readIORef stateRef
-      , EchoBot.hModifyState' = DIOR.modifyIORef' stateRef
-      , EchoBot.hLogHandle = logHandle
-      , EchoBot.hConfig = botConfig
-      , EchoBot.hTextFromMessage = Just
-      , EchoBot.hMessageFromText = id
-      }
-
-makeBotHandleForTelegram :: Logger.Handle IO -> IO (EchoBot.Handle IO a)
-makeBotHandleForTelegram logHandle = do
-  botConfig <- Config.getBotConfig
-  initialState <- either (die . T.unpack) pure $ EchoBot.makeState botConfig
-  stateRef <- DIOR.newIORef initialState
-  pure
-    EchoBot.Handle
-      { EchoBot.hGetState = DIOR.readIORef stateRef
-      , EchoBot.hModifyState' = DIOR.modifyIORef' stateRef
-      , EchoBot.hLogHandle = logHandle
-      , EchoBot.hConfig = botConfig
-      , EchoBot.hTextFromMessage = error "Not Implemented"
-      , EchoBot.hMessageFromText = error "Not Implemented"
+  return
+    EB.Handle
+      { EB.hGetState = DIOR.readIORef stateRef
+      , EB.hModifyState' = DIOR.modifyIORef' stateRef
+      , EB.hLogHandle = logHandle
+      , EB.hConfig = botConfig
+      , EB.hTextFromMessage = Just
+      , EB.hMessageFromText = id
       }
