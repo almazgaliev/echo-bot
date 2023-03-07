@@ -32,6 +32,7 @@ dependencies:
   - http-conduit
   - filepath
   - containers
+  - time
 
 ghc-options:
   - -Wall

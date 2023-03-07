@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 
 {- | The logger interface module. It should not define a specific
@@ -14,7 +15,7 @@ module Logger (
 )
 where
 
-import Data.Aeson (FromJSON, ToJSON)
+import qualified Data.Aeson as Aeson (FromJSON)
 import qualified Data.Text as T
 import GHC.Generics (Generic)
 
@@ -30,18 +31,7 @@ data Level
   | Info
   | Warning
   | Error
-  deriving (Read, Show, Eq, Ord, Generic)
-
-instance ToJSON Level
-instance FromJSON Level
-
--- instance FromJSON Level where
---   parseJSON = withText "Level" $ \v -> case readEither . T.unpack $ v of
---     Left s -> fail s
---     Right level -> return level
-
--- instance ToJSON Level where
---   toJSON = AT.String . T.pack . show
+  deriving (Read, Show, Eq, Ord, Generic, Aeson.FromJSON)
 
 logDebug, logInfo, logWarning, logError :: Handle m -> T.Text -> m ()
 logDebug h = hLowLevelLog h Debug
