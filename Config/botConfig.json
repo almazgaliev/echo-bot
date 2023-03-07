@@ -1,8 +1,5 @@
 {
-	"conf": {
-		"confHelpReply": "This is help message",
-		"confRepeatReply": "Repeat count is {count}",
-		"confRepetitionCount": 4
-	},
-	"frontend": "TelegramFrontEnd"
+	"confHelpReply": " Hello, this is echo-bot, i repeat (almost) everything you say. avalible commands: /help, /repeat",
+	"confRepeatReply": "Repeat count was set to {count}",
+	"confRepetitionCount": 4
 }

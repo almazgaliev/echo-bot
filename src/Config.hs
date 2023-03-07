@@ -1,64 +1,66 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 -- | A module to provide a configuration reader for other modules.
 module Config (
   getBotConfig,
   getLoggerConfig,
   getFrontEndType,
-  tokenPath
+  tokenPath,
 )
 where
 
-import ConfigurationTypes qualified
-import Data.Text qualified as T
-import EchoBot qualified
-import Logger qualified
-import Logger.Impl qualified
-import System.FilePath (isValid)
-import System.IO (IOMode (..), openFile, stderr, stdout)
+import qualified ConfigurationTypes (FrontEndType)
+import qualified EchoBot as EB
+import qualified Logger
+import qualified Logger.Impl
+import qualified System.FilePath as FP (isValid)
+import qualified System.IO as SIO (IOMode (..), openFile, stderr, stdout)
 
-import Data.Aeson (FromJSON , ToJSON, eitherDecode', withText)
-import Data.Aeson.Types qualified as AT
-import Data.ByteString.Lazy.Char8 qualified as BSL
-import Data.Text (unpack)
-import GHC.Generics (Generic)
+import Data.Aeson ((.:))
+import qualified Data.Aeson as Aeson (FromJSON (parseJSON), eitherDecode', withObject, withText)
+import qualified Data.ByteString.Lazy.Char8 as LBS (readFile)
+import qualified Data.Text as T (unpack)
+import qualified GHC.Generics as Generics (Generic)
 
-data BotConfig = BotConfig {frontend :: ConfigurationTypes.FrontEndType, conf :: EchoBot.Config} deriving (Generic)
+newtype BotConfig = BotConfig {conf :: EB.Config} deriving (Generics.Generic)
 
-instance FromJSON BotConfig
-instance ToJSON BotConfig
+instance Aeson.FromJSON BotConfig where
+  parseJSON = Aeson.withObject "BotConfig" $ \v -> BotConfig <$> (EB.Config <$> v .: "confHelpReply" <*> v .: "confRepeatReply" <*> v .: "confRepetitionCount")
+
+-- проверить если confRepetitionCount в пределах от 1 до 5
 
 data ValidHandle = FileHandle FilePath | Stdout | Stderr
 
-instance FromJSON ValidHandle where
+instance Aeson.FromJSON ValidHandle where
   parseJSON =
     let
       f "stdout" = return Stdout
       f "stderr" = return Stderr
-      f path | isValid path = return $ FileHandle path
+      f path | FP.isValid path = return $ FileHandle path
       f hnd = fail $ "handle: \"" ++ hnd ++ "\" is invalid. valid values are stderr, stdout or any valid file path"
      in
-      withText "Handle" (f . unpack)
-instance ToJSON ValidHandle where
-  toJSON (FileHandle f) = AT.String . T.pack $ f
-  toJSON Stdout = AT.String "stdout"
-  toJSON Stderr = AT.String "stderr"
+      Aeson.withText "Handle" (f . T.unpack)
 
-data ValidLoggerConfig = LoggerConfig {handle :: ValidHandle, minLevel :: Logger.Level} deriving (Generic, FromJSON)
+-- withObject "Handle" $ \v -> case AKM.lookup "frontend" v of
+--   Just (String txt) -> (f . T.unpack) txt
+--   _ -> fail "'frontend' key was not found"
 
-
-
+data ValidLoggerConfig = LoggerConfig {handle :: ValidHandle, minLevel :: Logger.Level} deriving (Generics.Generic, Aeson.FromJSON)
 
 {- | Gets the bot config. In any case it can provide reasonable
  default values.
 -}
-getBotConfig :: IO EchoBot.Config
+newtype FrontendConfig = FrontendConfig {getFrontend :: ConfigurationTypes.FrontEndType}
+
+instance Aeson.FromJSON FrontendConfig where
+  parseJSON = Aeson.withObject "FrontendConfig" $ \v -> FrontendConfig <$> v .: "frontend"
+
+getBotConfig :: IO EB.Config
 getBotConfig = do
-  json <- BSL.readFile "Config/botConfig.json"
-  let res = eitherDecode' json :: Either String BotConfig
+  json <- LBS.readFile "Config/botConfig.json"
+  let res = Aeson.eitherDecode' json :: Either String BotConfig
   case res of
     Right config -> do
       return . conf $ config
@@ -66,14 +68,14 @@ getBotConfig = do
 
 getLoggerConfig :: IO Logger.Impl.Config
 getLoggerConfig = do
-  json <- BSL.readFile "Config/logger.json"
-  let res = eitherDecode' json
+  json <- LBS.readFile "Config/logger.json"
+  let res = Aeson.eitherDecode' json
   case res of
     Right config -> do
       h <- case handle config of
-        FileHandle s -> openFile s AppendMode
-        Stdout -> pure stdout
-        Stderr -> pure stderr
+        FileHandle s -> SIO.openFile s SIO.AppendMode
+        Stdout -> pure SIO.stdout
+        Stderr -> pure SIO.stderr
       return
         Logger.Impl.Config
           { Logger.Impl.confHandle = h
@@ -83,11 +85,11 @@ getLoggerConfig = do
 
 getFrontEndType :: IO ConfigurationTypes.FrontEndType
 getFrontEndType = do
-  json <- BSL.readFile "Config/botConfig.json"
-  let res = eitherDecode' json
+  json <- LBS.readFile "Config/frontendConfig.json"
+  let res = Aeson.eitherDecode' json
   case res of
     Right config -> do
-      return $ frontend config
+      return . getFrontend $ config
     Left msg -> fail msg
 
 tokenPath :: String
