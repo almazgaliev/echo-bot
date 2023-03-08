@@ -25,6 +25,7 @@ paramsToBody :: UpdateParams -> [(BS.ByteString, BS.ByteString)]
 paramsToBody params = [("offset", BS.packChars . show $ getOffset params)]
 
 type APIToken = String
+
 apiURL :: String
 apiURL = "https://api.telegram.org/"
 
