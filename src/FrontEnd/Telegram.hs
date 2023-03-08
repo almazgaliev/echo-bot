@@ -15,18 +15,15 @@ import Data.Foldable (forM_)
 
 import qualified Data.Map as DM
 
-import qualified Config
-import Control.Monad ((<=<))
+import Control.Monad (unless, (<=<))
 import qualified Data.ByteString.Lazy as LBS
-import qualified Data.IORef as DIOR
-import Data.Maybe (fromMaybe, mapMaybe)
-import qualified Data.Text as T (unpack)
+import Data.Maybe (mapMaybe)
+import qualified Data.Text as T (pack, unpack)
 import qualified Data.Word as Word (Word64)
 import qualified EchoBot as EB
 import Logger ((.<))
 import qualified Logger
 import qualified Network.HTTP.Conduit as Conduit
-import qualified System.Exit as Exit (die)
 import qualified TelegramAPI (APIToken, UpdateParams (UpdateParams, allowedUpdates, getOffset), sendMessage)
 import qualified TelegramAPI.Wrappers as TW (
   ChatInfo (getChatId),
@@ -37,21 +34,8 @@ import qualified TelegramAPI.Wrappers as TW (
   getUpdateId,
   getUpdates,
  )
-
-makeBotHandleForTelegram :: Logger.Handle IO -> IO (EB.Handle IO a)
-makeBotHandleForTelegram logHandle = do
-  botConfig <- Config.getBotConfig
-  initialState <- either (Exit.die . T.unpack) pure $ EB.makeState botConfig
-  stateRef <- DIOR.newIORef initialState
-  return
-    EB.Handle
-      { EB.hGetState = DIOR.readIORef stateRef
-      , EB.hModifyState' = DIOR.modifyIORef' stateRef
-      , EB.hLogHandle = logHandle
-      , EB.hConfig = botConfig
-      , EB.hTextFromMessage = error "Not Implemented"
-      , EB.hMessageFromText = error "Not Implemented"
-      }
+import qualified Util (wrapWithTicks)
+import qualified Data.List as List
 
 data Handle m a = Handle
   { hBotHandle :: DM.Map Word.Word64 (EB.Handle m a)
@@ -60,9 +44,10 @@ data Handle m a = Handle
   , hToken :: TelegramAPI.APIToken
   }
 
-run :: Handle IO a -> Logger.Handle IO -> IO ()
-run handle logHandle = do
+run :: EB.Handle IO a -> Handle IO a -> IO ()
+run defaultHandle handle = do
   threadDelay $ sec * 1000000
+  let logHandle = EB.hLogHandle defaultHandle
   let oldHandles = hBotHandle handle
   response <-
     TW.getUpdates
@@ -76,19 +61,18 @@ run handle logHandle = do
   case response of
     Left msg -> do
       Logger.logDebug logHandle $ "getUpdates: " .< msg
-      -- run (handle {hOffset = hOffset handle + 1}) logHandle
-      run handle logHandle
+      run defaultHandle handle
     Right (TW.UpdatesInfo {TW.getResult = updates}) -> do
-      Logger.logDebug logHandle $ "got these updates: " .< ("\n" ++ Prelude.unlines (fmap showUpdateData updates))
-      h <- makeBotHandleForTelegram logHandle
+      let updateLog = List.intercalate ", " (fmap showUpdateData updates)
+      unless (null updateLog) $ Logger.logDebug logHandle . T.pack $ "got these updates: " ++ updateLog
       let ids = mapMaybe getChatId updates
       let messages = mapMaybe getTextOfMsg updates
-      let newHandles = DM.fromList $ zip ids (repeat h)
+      let newHandles = DM.fromList $ zip ids (repeat defaultHandle)
       let a = DM.union oldHandles newHandles
       let newHandle = handle {hBotHandle = a, hOffset = getMaxUpdateId updates + 1}
       forM_ (zip ids messages) $
         respond newHandle
-      run newHandle logHandle
+      run defaultHandle newHandle
 
 respond :: Handle IO a -> (Word.Word64, String) -> IO (Conduit.Response LBS.ByteString)
 respond handle (chatId, msg) = do
@@ -97,7 +81,7 @@ respond handle (chatId, msg) = do
   TelegramAPI.sendMessage manager token msg chatId
 
 getChatId :: TW.UpdateInfo -> Maybe Word.Word64
-getChatId upd = TW.getChatId . TW.getChatInfo <$> TW.getMessage upd
+getChatId = return . TW.getChatId . TW.getChatInfo <=< TW.getMessage
 
 getTextOfMsg :: TW.UpdateInfo -> Maybe String
 getTextOfMsg = return . T.unpack <=< TW.getText <=< TW.getMessage
@@ -109,11 +93,10 @@ showUpdateData u =
     ++ maybe "---" (TW.getUserName . TW.getSender) (TW.getMessage u)
     ++ ")"
     ++ ":"
-    ++ fromMaybe "No Text" (getTextOfMsg u)
+    ++ maybe "[No Text]" Util.wrapWithTicks (getTextOfMsg u)
 
 getMaxUpdateId :: [TW.UpdateInfo] -> Word.Word64
-getMaxUpdateId [] = 0
-getMaxUpdateId updates = Prelude.maximum . fmap TW.getUpdateId $ updates
+getMaxUpdateId = List.foldl' max 0 . fmap TW.getUpdateId
 
 sec :: Int
 sec = 3

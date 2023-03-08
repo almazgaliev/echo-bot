@@ -34,15 +34,16 @@ runConsoleFrontEnd botHandle =
     FrontEnd.Console.Handle {FrontEnd.Console.hBotHandle = botHandle}
 
 runTelegramFrontEnd :: Logger.Handle IO -> Conduit.Manager -> TelegramAPI.APIToken -> IO ()
-runTelegramFrontEnd logHandle manager token =
+runTelegramFrontEnd logHandle manager token = do
+  defaultHandle <- makeBotHandleForTelegram logHandle
   FrontEnd.Telegram.run
+    defaultHandle
     FrontEnd.Telegram.Handle
       { FrontEnd.Telegram.hBotHandle = DM.empty
       , FrontEnd.Telegram.hManager = manager
       , FrontEnd.Telegram.hToken = token
       , FrontEnd.Telegram.hOffset = 0
       }
-    logHandle
 
 withLogHandle :: (Logger.Handle IO -> IO ()) -> IO ()
 withLogHandle f = do
@@ -78,4 +79,19 @@ makeBotHandleForPlainText logHandle = do
       , EB.hConfig = botConfig
       , EB.hTextFromMessage = Just
       , EB.hMessageFromText = id
+      }
+
+makeBotHandleForTelegram :: Logger.Handle IO -> IO (EB.Handle IO a)
+makeBotHandleForTelegram logHandle = do
+  botConfig <- Config.getBotConfig
+  initialState <- either (Exit.die . T.unpack) pure $ EB.makeState botConfig
+  stateRef <- DIOR.newIORef initialState
+  return
+    EB.Handle
+      { EB.hGetState = DIOR.readIORef stateRef
+      , EB.hModifyState' = DIOR.modifyIORef' stateRef
+      , EB.hLogHandle = logHandle
+      , EB.hConfig = botConfig
+      , EB.hTextFromMessage = error "Not Implemented"
+      , EB.hMessageFromText = error "Not Implemented"
       }
