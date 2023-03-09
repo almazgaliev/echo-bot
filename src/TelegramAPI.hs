@@ -1,10 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TupleSections #-}
 
 module TelegramAPI (
   sendMessage,
   getUpdates,
   UpdateParams (..),
   APIToken,
+  Message (..),
 ) where
 
 import qualified Data.ByteString.Internal as BS (ByteString, packChars)
@@ -18,6 +20,7 @@ import qualified Network.HTTP.Simple as Simple (
   setRequestBodyURLEncoded,
   setRequestMethod,
  )
+import Data.Maybe (catMaybes)
 
 data UpdateParams = UpdateParams {getOffset :: Word.Word64, allowedUpdates :: [String]}
 
@@ -26,14 +29,19 @@ paramsToBody params = [("offset", BS.packChars . show $ getOffset params)]
 
 type APIToken = String
 
+newtype Message = Message {getText :: Maybe String}
+
+getText' :: Message -> Maybe (BS.ByteString, BS.ByteString)
+getText' message = ("text",) . T.encodeUtf8 . T.pack <$> getText message
+
 apiURL :: String
 apiURL = "https://api.telegram.org/"
 
-sendMessage :: Conduit.Manager -> APIToken -> String -> Word.Word64 -> IO (Conduit.Response LBS.ByteString)
+sendMessage :: Conduit.Manager -> APIToken -> Message -> Word.Word64 -> IO (Conduit.Response LBS.ByteString)
 sendMessage manager token message chatId = do
-  let body =
-        [ ("chat_id", BS.packChars . show $ chatId)
-        , ("text", T.encodeUtf8 . T.pack $ message)
+  let body = catMaybes
+        [ Just ("chat_id", BS.packChars . show $ chatId)
+        , getText' message
         ]
   request <- Conduit.parseRequest $ apiURL ++ "bot" ++ token ++ "/sendMessage"
   let request' =

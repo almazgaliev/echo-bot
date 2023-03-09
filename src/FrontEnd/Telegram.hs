@@ -17,6 +17,7 @@ import qualified Data.Map as DM
 
 import Control.Monad (unless, (<=<))
 import qualified Data.ByteString.Lazy as LBS
+import qualified Data.List as List
 import Data.Maybe (mapMaybe)
 import qualified Data.Text as T (pack, unpack)
 import qualified Data.Word as Word (Word64)
@@ -24,7 +25,7 @@ import qualified EchoBot as EB
 import Logger ((.<))
 import qualified Logger
 import qualified Network.HTTP.Conduit as Conduit
-import qualified TelegramAPI (APIToken, UpdateParams (UpdateParams, allowedUpdates, getOffset), sendMessage)
+import qualified TelegramAPI (APIToken, Message (Message), UpdateParams (UpdateParams, allowedUpdates, getOffset), sendMessage)
 import qualified TelegramAPI.Wrappers as TW (
   ChatInfo (getChatId),
   MessageInfo (getChatInfo, getSender, getText),
@@ -35,7 +36,6 @@ import qualified TelegramAPI.Wrappers as TW (
   getUpdates,
  )
 import qualified Util (wrapWithTicks)
-import qualified Data.List as List
 
 data Handle m a = Handle
   { hBotHandle :: DM.Map Word.Word64 (EB.Handle m a)
@@ -78,7 +78,7 @@ respond :: Handle IO a -> (Word.Word64, String) -> IO (Conduit.Response LBS.Byte
 respond handle (chatId, msg) = do
   let manager = hManager handle
   let token = hToken handle
-  TelegramAPI.sendMessage manager token msg chatId
+  TelegramAPI.sendMessage manager token (TelegramAPI.Message (Just msg)) chatId
 
 getChatId :: TW.UpdateInfo -> Maybe Word.Word64
 getChatId = return . TW.getChatId . TW.getChatInfo <=< TW.getMessage
