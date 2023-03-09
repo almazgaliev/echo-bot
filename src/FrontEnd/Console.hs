@@ -10,13 +10,12 @@ module FrontEnd.Console (
 )
 where
 
-import qualified Data.Maybe (fromMaybe)
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import qualified EchoBot as EB
 import qualified Logger (logInfo)
 import qualified System.IO as SIO
-import qualified Text.Read as TR
+import qualified Text.Read as TR (readMaybe)
 
 newtype Handle = Handle {hBotHandle :: EB.Handle IO T.Text}
 
@@ -29,20 +28,20 @@ run handle = do
   loop handle (EB.MessageEvent message)
 
 loop :: Handle -> EB.Event T.Text -> IO ()
-loop handle event = do
-  responses <- EB.respond (hBotHandle handle) event
+loop handle currentEvent = do
+  responses <- EB.respond (hBotHandle handle) currentEvent
   printResponses responses
   prompt
-  msg <- TIO.getLine
-  let newEvent = case last responses of
-        EB.MessageResponse _ -> EB.MessageEvent msg
-        EB.MenuResponse _ buttons ->
-          Data.Maybe.fromMaybe
-            (EB.MessageEvent "/help") -- FIX
-            ( do
-                repeatCount <- TR.readMaybe . T.unpack $ msg
-                lookup repeatCount buttons
-            )
+  newMessage <- TIO.getLine
+  newEvent <- case last responses of
+    EB.MessageResponse _ -> return (EB.MessageEvent newMessage)
+    EB.MenuResponse _ buttons -> do
+      case TR.readMaybe . T.unpack $ newMessage of
+        Nothing -> printResponses [EB.MessageResponse "Error: please input number"] >> return currentEvent
+        Just count ->
+          case lookup count buttons of
+            Nothing -> printResponses [EB.MessageResponse "Error: please input valid number"] >> return currentEvent
+            Just _ -> return (EB.SetRepetitionCountEvent count)
   loop handle newEvent
 
 responseToText :: EB.Response T.Text -> T.Text
