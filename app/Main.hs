@@ -13,7 +13,7 @@ import qualified Data.Map as DM
 import qualified Logger
 import qualified Logger.Impl
 import qualified System.Exit as Exit (die)
-import qualified TelegramAPI
+import qualified TelegramAPI.Types as Types
 
 main :: IO ()
 main = do
@@ -33,7 +33,7 @@ runConsoleFrontEnd botHandle =
   FrontEnd.Console.run
     FrontEnd.Console.Handle {FrontEnd.Console.hBotHandle = botHandle}
 
-runTelegramFrontEnd :: Logger.Handle IO -> Conduit.Manager -> TelegramAPI.APIToken -> IO ()
+runTelegramFrontEnd :: Logger.Handle IO -> Conduit.Manager -> Types.APIToken -> IO ()
 runTelegramFrontEnd logHandle manager token = do
   defaultHandle <- makeBotHandleForTelegram logHandle
   FrontEnd.Telegram.run

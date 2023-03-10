@@ -16,7 +16,6 @@ import Data.Foldable (forM_)
 import qualified Data.Map as DM
 
 import Control.Monad (unless, (<=<))
-import qualified Data.ByteString.Lazy as LBS
 import qualified Data.List as List
 import Data.Maybe (mapMaybe)
 import qualified Data.Text as T (pack, unpack)
@@ -25,44 +24,43 @@ import qualified EchoBot as EB
 import Logger ((.<))
 import qualified Logger
 import qualified Network.HTTP.Conduit as Conduit
-import qualified TelegramAPI (APIToken, Message (Message), UpdateParams (UpdateParams, allowedUpdates, getOffset), sendMessage)
-import qualified TelegramAPI.Wrappers as TW (
-  ChatInfo (getChatId),
-  MessageInfo (getChatInfo, getSender, getText),
-  SenderInfo (getFirstName, getUserName),
-  UpdateInfo (getMessage),
-  UpdatesInfo (UpdatesInfo, getResult),
-  getUpdateId,
-  getUpdates,
- )
+
+import qualified TelegramAPI.Types as Types
+import qualified TelegramAPI.Types.Message as Message
+import qualified TelegramAPI.Types.UpdateParams as UpdateParams
+import qualified TelegramAPI.Wrapper as TW
+import qualified TelegramAPI.Wrapper.Types.ChatInfo as ChatInfo
+import qualified TelegramAPI.Wrapper.Types.MessageInfo as MessageInfo
+import qualified TelegramAPI.Wrapper.Types.SenderInfo as SenderInfo
+import qualified TelegramAPI.Wrapper.Types.Updates as Updates
 import qualified Util (wrapWithTicks)
 
 data Handle m a = Handle
   { hBotHandle :: DM.Map Word.Word64 (EB.Handle m a)
   , hOffset :: Word.Word64
   , hManager :: Conduit.Manager
-  , hToken :: TelegramAPI.APIToken
+  , hToken :: Types.APIToken
   }
 
 run :: EB.Handle IO a -> Handle IO a -> IO ()
 run defaultHandle handle = do
-  threadDelay $ sec * 1000000
+  threadDelay $ secToMicro sec
   let logHandle = EB.hLogHandle defaultHandle
   let oldHandles = hBotHandle handle
   response <-
     TW.getUpdates
       (hManager handle)
       (hToken handle)
-      ( TelegramAPI.UpdateParams
-          { TelegramAPI.getOffset = hOffset handle
-          , TelegramAPI.allowedUpdates = ["message"]
+      ( UpdateParams.UpdateParams
+          { UpdateParams.getOffset = hOffset handle
+          , UpdateParams.allowedUpdates = ["message"]
           }
       )
   case response of
     Left msg -> do
       Logger.logDebug logHandle $ "getUpdates: " .< msg
       run defaultHandle handle
-    Right (TW.UpdatesInfo {TW.getResult = updates}) -> do
+    Right (Updates.UpdatesInfo {Updates.getResult = updates}) -> do
       let updateLog = List.intercalate ", " (fmap showUpdateData updates)
       unless (null updateLog) $ Logger.logDebug logHandle . T.pack $ "got these updates: " ++ updateLog
       let ids = mapMaybe getChatId updates
@@ -74,29 +72,40 @@ run defaultHandle handle = do
         respond newHandle
       run defaultHandle newHandle
 
-respond :: Handle IO a -> (Word.Word64, String) -> IO (Conduit.Response LBS.ByteString)
+respond :: Handle IO a -> (Word.Word64, String) -> IO (Either String ())
 respond handle (chatId, msg) = do
   let manager = hManager handle
   let token = hToken handle
-  TelegramAPI.sendMessage manager token (TelegramAPI.Message (Just msg)) chatId
+  TW.sendMessage
+    manager
+    token
+    (Message.Message {Message.getText = Just msg, Message.getMarkup = Nothing})
+    chatId
 
-getChatId :: TW.UpdateInfo -> Maybe Word.Word64
-getChatId = return . TW.getChatId . TW.getChatInfo <=< TW.getMessage
+getChatId :: Updates.UpdateInfo -> Maybe Word.Word64
+getChatId = return . ChatInfo.getChatId . MessageInfo.getChatInfo <=< Updates.getMessage
 
-getTextOfMsg :: TW.UpdateInfo -> Maybe String
-getTextOfMsg = return . T.unpack <=< TW.getText <=< TW.getMessage
+getTextOfMsg :: Updates.UpdateInfo -> Maybe String
+getTextOfMsg = return . T.unpack <=< MessageInfo.getText <=< Updates.getMessage
 
-showUpdateData :: TW.UpdateInfo -> String
+showUpdateData :: Updates.UpdateInfo -> String
 showUpdateData u =
-  maybe "---" (TW.getFirstName . TW.getSender) (TW.getMessage u)
-    ++ "("
-    ++ maybe "---" (TW.getUserName . TW.getSender) (TW.getMessage u)
-    ++ ")"
-    ++ ":"
-    ++ maybe "[No Text]" Util.wrapWithTicks (getTextOfMsg u)
+  let
+    msg = Updates.getMessage u
+   in
+    concat
+      [ maybe "[No Name]" (SenderInfo.getFirstName . MessageInfo.getSender) msg
+      , "("
+      , maybe "[No NickName]" (SenderInfo.getUserName . MessageInfo.getSender) msg
+      , "):"
+      , maybe "[No Text]" Util.wrapWithTicks (getTextOfMsg u)
+      ]
 
-getMaxUpdateId :: [TW.UpdateInfo] -> Word.Word64
-getMaxUpdateId = List.foldl' max 0 . fmap TW.getUpdateId
+getMaxUpdateId :: [Updates.UpdateInfo] -> Word.Word64
+getMaxUpdateId = List.foldl' max 0 . fmap Updates.getUpdateId
 
 sec :: Int
 sec = 3
+
+secToMicro :: Num a => a -> a
+secToMicro = (* 1000000)

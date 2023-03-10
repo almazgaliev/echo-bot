@@ -34,14 +34,14 @@ loop handle currentEvent = do
   prompt
   newMessage <- TIO.getLine
   newEvent <- case last responses of
-    EB.MessageResponse _ -> return (EB.MessageEvent newMessage)
+    EB.MessageResponse _ -> pure (EB.MessageEvent newMessage)
     EB.MenuResponse _ buttons -> do
       case TR.readMaybe . T.unpack $ newMessage of
-        Nothing -> printResponses [EB.MessageResponse "Error: please input number"] >> return currentEvent
+        Nothing -> printResponses [EB.MessageResponse "Error: please input number"] >> pure currentEvent
         Just count ->
           case lookup count buttons of
-            Nothing -> printResponses [EB.MessageResponse "Error: please input valid number"] >> return currentEvent
-            Just _ -> return (EB.SetRepetitionCountEvent count)
+            Nothing -> printResponses [EB.MessageResponse "Error: please input valid number"] >> pure currentEvent
+            Just _ -> pure (EB.SetRepetitionCountEvent count)
   loop handle newEvent
 
 responseToText :: EB.Response T.Text -> T.Text
