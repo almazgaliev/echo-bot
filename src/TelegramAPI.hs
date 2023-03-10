@@ -27,7 +27,7 @@ paramsToBody :: UpdateParams.UpdateParams -> [(BS.ByteString, BS.ByteString)]
 paramsToBody params = [("offset", BS.packChars . show $ UpdateParams.getOffset params)]
 
 getReplyMarkup' :: Message.Message -> Maybe (BS.ByteString, BS.ByteString)
-getReplyMarkup' message = ("text",) . LBS.toStrict . Aeson.encode <$> Message.getMarkup message
+getReplyMarkup' message = ("reply_markup",) . LBS.toStrict . Aeson.encode <$> Message.getMarkup message
 
 getText' :: Message.Message -> Maybe (BS.ByteString, BS.ByteString)
 getText' message = ("text",) . T.encodeUtf8 . T.pack <$> Message.getText message
