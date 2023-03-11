@@ -35,8 +35,8 @@ getText' message = ("text",) . T.encodeUtf8 . T.pack <$> Message.getText message
 apiURL :: String
 apiURL = "https://api.telegram.org/"
 
-sendMessage :: Conduit.Manager -> Types.APIToken -> Message.Message -> Word.Word64 -> IO (Conduit.Response LBS.ByteString)
-sendMessage manager token message chatId = do
+sendMessage :: Conduit.Manager -> Types.APIToken -> Word.Word64 -> Message.Message -> IO (Conduit.Response LBS.ByteString)
+sendMessage manager token chatId message = do
   let body =
         catMaybes
           [ Just ("chat_id", BS.packChars . show $ chatId)

@@ -76,11 +76,8 @@ respond :: Handle IO a -> (Word.Word64, String) -> IO (Either String ())
 respond handle (chatId, msg) = do
   let manager = hManager handle
   let token = hToken handle
-  TW.sendMessage
-    manager
-    token
-    (Message.Message {Message.getText = Just msg, Message.getMarkup = Nothing})
-    chatId
+  let message = Message.Message {Message.getText = Just msg, Message.getMarkup = Nothing}
+  TW.sendMessage manager token chatId message
 
 getChatId :: Updates.UpdateInfo -> Maybe Word.Word64
 getChatId = return . ChatInfo.getChatId . MessageInfo.getChatInfo <=< Updates.getMessage
@@ -96,7 +93,7 @@ showUpdateData u =
     concat
       [ maybe "[No Name]" (SenderInfo.getFirstName . MessageInfo.getSender) msg
       , "("
-      , maybe "[No NickName]" (SenderInfo.getUserName . MessageInfo.getSender) msg
+      , maybe "[No UserName]" (SenderInfo.getUserName . MessageInfo.getSender) msg
       , "):"
       , maybe "[No Text]" Util.wrapWithTicks (getTextOfMsg u)
       ]

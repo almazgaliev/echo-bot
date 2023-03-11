@@ -30,9 +30,9 @@ getUpdates manager token params = do
 sendMessage ::
   Conduit.Manager ->
   Types.APIToken ->
-  Message.Message ->
   Word.Word64 ->
+  Message.Message ->
   IO (Either String ())
-sendMessage manager token message chatId = do
-  _ <- TelegramAPI.sendMessage manager token message chatId
-  return $ Right ()
+sendMessage manager token chatId message = do
+  _ <- TelegramAPI.sendMessage manager token chatId message
+  return $ Right () -- TODO handle errors
