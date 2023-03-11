@@ -15,16 +15,27 @@ import Data.Maybe (catMaybes)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.Word as Word (Word64)
+import qualified Network.HTTP.Client as Network.HTTP.Client.Types
 import qualified Network.HTTP.Simple as Simple (
   setRequestBodyURLEncoded,
   setRequestMethod,
  )
 import qualified Telegram.Bot.API.Types as Types
+import qualified Telegram.Bot.API.Types.AnswerCallbackQueryParams as AnswerCallbackQueryParams
 import qualified Telegram.Bot.API.Types.Message as Message
 import qualified Telegram.Bot.API.Types.UpdateParams as UpdateParams
 
-paramsToBody :: UpdateParams.UpdateParams -> [(BS.ByteString, BS.ByteString)]
-paramsToBody params = [("offset", BS.packChars . show $ UpdateParams.getOffset params)]
+type RequestBody = [(BS.ByteString, BS.ByteString)]
+
+updateParamsToBody :: UpdateParams.UpdateParams -> RequestBody
+updateParamsToBody params = [("offset", BS.packChars . show $ UpdateParams.getOffset params)]
+
+answerParamsToBody :: AnswerCallbackQueryParams.AnswerCallbackQueryParams -> RequestBody
+answerParamsToBody params =
+  catMaybes
+    [ pure . ("callback_query_id",) . BS.packChars $ AnswerCallbackQueryParams.getCallbackQueryId params
+    , ("text",) . BS.packChars <$> AnswerCallbackQueryParams.getText params
+    ]
 
 getReplyMarkup' :: Message.Message -> Maybe (BS.ByteString, BS.ByteString)
 getReplyMarkup' message = ("reply_markup",) . LBS.toStrict . Aeson.encode <$> Message.getMarkup message
@@ -35,28 +46,32 @@ getText' message = ("text",) . T.encodeUtf8 . T.pack <$> Message.getText message
 apiURL :: String
 apiURL = "https://api.telegram.org/"
 
+apiPOSTRequest :: String -> String -> RequestBody -> IO Network.HTTP.Client.Types.Request
+apiPOSTRequest token method body = do
+  request <- Conduit.parseRequest $ apiURL ++ "bot" ++ token ++ method
+  return $
+    Simple.setRequestMethod "POST" $
+      Simple.setRequestBodyURLEncoded body request
+
 sendMessage :: Conduit.Manager -> Types.APIToken -> Word.Word64 -> Message.Message -> IO (Conduit.Response LBS.ByteString)
 sendMessage manager token chatId message = do
   let body =
         catMaybes
-          [ Just ("chat_id", BS.packChars . show $ chatId)
+          [ pure ("chat_id", BS.packChars . show $ chatId)
           , getText' message
           , getReplyMarkup' message
           ]
-  request <- Conduit.parseRequest $ apiURL ++ "bot" ++ token ++ "/sendMessage"
-  let request' =
-        Simple.setRequestMethod "POST" $
-          Simple.setRequestBodyURLEncoded body request
+  request' <- apiPOSTRequest token "/sendMessage" body
   Conduit.httpLbs request' manager
 
 getUpdates :: Conduit.Manager -> Types.APIToken -> UpdateParams.UpdateParams -> IO (Conduit.Response LBS.ByteString)
 getUpdates manager token params = do
-  let body = paramsToBody params
-  request <- Conduit.parseRequest $ apiURL ++ "bot" ++ token ++ "/getUpdates"
-  let request' =
-        Simple.setRequestMethod "POST" $
-          Simple.setRequestBodyURLEncoded body request
+  let body = updateParamsToBody params
+  request' <- apiPOSTRequest token "/getUpdates" body
   Conduit.httpLbs request' manager
 
-answerCallbackQuery :: Conduit.Manager -> Types.APIToken -> a -> IO (Conduit.Response LBS.ByteString)
-answerCallbackQuery = error "Not implemented"
+answerCallbackQuery :: Conduit.Manager -> Types.APIToken -> AnswerCallbackQueryParams.AnswerCallbackQueryParams -> IO (Conduit.Response LBS.ByteString)
+answerCallbackQuery manager token params = do
+  let body = answerParamsToBody params
+  request' <- apiPOSTRequest token "/answerCallbackQuery" body
+  Conduit.httpLbs request' manager
