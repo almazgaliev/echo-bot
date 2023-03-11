@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections #-}
 
-module Telegram.Bot.API (
+module Telegram.Bot.API.Methods (
   sendMessage,
   getUpdates,
 ) where
@@ -57,3 +57,6 @@ getUpdates manager token params = do
         Simple.setRequestMethod "POST" $
           Simple.setRequestBodyURLEncoded body request
   Conduit.httpLbs request' manager
+
+answerCallbackQuery :: Conduit.Manager -> Types.APIToken -> a -> IO (Conduit.Response LBS.ByteString)
+answerCallbackQuery = error "Not implemented"

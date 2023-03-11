@@ -1,13 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Telegram.Bot.API.Wrapper (getUpdates, sendMessage)
+module Telegram.Bot.API.Wrapper.Methods (getUpdates, sendMessage)
 where
 
 import qualified Data.Aeson as Aeson (eitherDecode)
 import qualified Data.Word as Word
 import qualified Network.HTTP.Conduit as Conduit
 import Network.HTTP.Types (Status (statusCode))
-import qualified Telegram.Bot.API as TelegramAPI
+import qualified Telegram.Bot.API.Methods as Methods
 import qualified Telegram.Bot.API.Types as Types
 import qualified Telegram.Bot.API.Types.Message as Message
 import qualified Telegram.Bot.API.Types.UpdateParams as UpdateParams (UpdateParams)
@@ -19,7 +19,7 @@ getUpdates ::
   UpdateParams.UpdateParams ->
   IO (Either String Updates.UpdatesInfo)
 getUpdates manager token params = do
-  response <- TelegramAPI.getUpdates manager token params
+  response <- Methods.getUpdates manager token params
   let code = statusCode . Conduit.responseStatus $ response
   let body = Conduit.responseBody response
   return $
@@ -34,5 +34,5 @@ sendMessage ::
   Message.Message ->
   IO (Either String ())
 sendMessage manager token chatId message = do
-  _ <- TelegramAPI.sendMessage manager token chatId message
+  _ <- Methods.sendMessage manager token chatId message
   return $ Right () -- TODO handle errors

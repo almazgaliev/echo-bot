@@ -2,20 +2,19 @@
 
 module Telegram.Bot.API.Types.InlineKeyboardButton (InlineKeyboardButton, mkInlineCallBackButton) where
 
-import Data.Aeson ((.=))
+import Data.Aeson ((.:?), (.=))
 import qualified Data.Aeson as Aeson
 
-data RequiredField = CallBack String | Url String deriving (Show)
+data InlineKeyboardButton = InlineKeyboardButton {getText :: Maybe String, callback :: Maybe String} deriving (Show)
 
-data InlineKeyboardButton = InlineKeyboardButton {getText :: Maybe String, requieredField :: RequiredField} deriving (Show)
-
+instance Aeson.FromJSON InlineKeyboardButton where
+  parseJSON = Aeson.withObject "InlineKeyboardButton" $ \v -> InlineKeyboardButton <$> v .:? "text" <*> v .:? "callback_data"
 instance Aeson.ToJSON InlineKeyboardButton where
-  toJSON (InlineKeyboardButton {getText = text, requieredField = (CallBack callback)}) = Aeson.object ["text" .= text, "callback_data" .= callback]
-  toJSON _ = error "Not Implemented"
+  toJSON (InlineKeyboardButton {getText = t, callback = cb}) = Aeson.object ["text" .= t, "callback_data" .= cb]
 
 mkInlineCallBackButton :: String -> String -> InlineKeyboardButton
 mkInlineCallBackButton label data' =
   InlineKeyboardButton
     { getText = pure label
-    , requieredField = CallBack data'
+    , callback = pure data'
     }

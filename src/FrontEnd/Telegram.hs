@@ -28,7 +28,7 @@ import qualified Network.HTTP.Conduit as Conduit
 import qualified Telegram.Bot.API.Types as Types
 import qualified Telegram.Bot.API.Types.Message as Message
 import qualified Telegram.Bot.API.Types.UpdateParams as UpdateParams
-import qualified Telegram.Bot.API.Wrapper as TW
+import qualified Telegram.Bot.API.Wrapper.Methods as Methods
 import qualified Telegram.Bot.API.Wrapper.Types.ChatInfo as ChatInfo
 import qualified Telegram.Bot.API.Wrapper.Types.MessageInfo as MessageInfo
 import qualified Telegram.Bot.API.Wrapper.Types.SenderInfo as SenderInfo
@@ -48,7 +48,7 @@ run defaultHandle handle = do
   let logHandle = EB.hLogHandle defaultHandle
   let oldHandles = hBotHandle handle
   response <-
-    TW.getUpdates
+    Methods.getUpdates
       (hManager handle)
       (hToken handle)
       ( UpdateParams.UpdateParams
@@ -77,7 +77,7 @@ respond handle (chatId, msg) = do
   let manager = hManager handle
   let token = hToken handle
   let message = Message.Message {Message.getText = Just msg, Message.getMarkup = Nothing}
-  TW.sendMessage manager token chatId message
+  Methods.sendMessage manager token chatId message
 
 getChatId :: Updates.UpdateInfo -> Maybe Word.Word64
 getChatId = return . ChatInfo.getChatId . MessageInfo.getChatInfo <=< Updates.getMessage
