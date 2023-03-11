@@ -28,7 +28,7 @@ import qualified Telegram.Bot.API.Types.UpdateParams as UpdateParams
 type RequestBody = [(BS.ByteString, BS.ByteString)]
 
 updateParamsToBody :: UpdateParams.UpdateParams -> RequestBody
-updateParamsToBody params = [("offset", BS.packChars . show $ UpdateParams.getOffset params)]
+updateParamsToBody params = [("offset",) . BS.packChars . show $ UpdateParams.getOffset params]
 
 answerParamsToBody :: AnswerCallbackQueryParams.AnswerCallbackQueryParams -> RequestBody
 answerParamsToBody params =
@@ -37,11 +37,13 @@ answerParamsToBody params =
     , ("text",) . BS.packChars <$> AnswerCallbackQueryParams.getText params
     ]
 
-getReplyMarkup' :: Message.Message -> Maybe (BS.ByteString, BS.ByteString)
-getReplyMarkup' message = ("reply_markup",) . LBS.toStrict . Aeson.encode <$> Message.getMarkup message
-
-getText' :: Message.Message -> Maybe (BS.ByteString, BS.ByteString)
-getText' message = ("text",) . T.encodeUtf8 . T.pack <$> Message.getText message
+messageToBody :: Word.Word64 -> Message.Message -> RequestBody
+messageToBody chatId message =
+  catMaybes
+    [ pure ("chat_id", BS.packChars . show $ chatId)
+    , ("text",) . T.encodeUtf8 . T.pack <$> Message.getText message
+    , ("reply_markup",) . LBS.toStrict . Aeson.encode <$> Message.getMarkup message
+    ]
 
 apiURL :: String
 apiURL = "https://api.telegram.org/"
@@ -55,12 +57,7 @@ apiPOSTRequest token method body = do
 
 sendMessage :: Conduit.Manager -> Types.APIToken -> Word.Word64 -> Message.Message -> IO (Conduit.Response LBS.ByteString)
 sendMessage manager token chatId message = do
-  let body =
-        catMaybes
-          [ pure ("chat_id", BS.packChars . show $ chatId)
-          , getText' message
-          , getReplyMarkup' message
-          ]
+  let body = messageToBody chatId message
   request' <- apiPOSTRequest token "/sendMessage" body
   Conduit.httpLbs request' manager
 
