@@ -1,4 +1,4 @@
-module TelegramAPI.Types.UpdateParams (UpdateParams (..)) where
+module Telegram.Bot.API.Types.UpdateParams (UpdateParams (..)) where
 
 import qualified Data.Word as Word
 

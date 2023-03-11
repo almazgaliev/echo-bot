@@ -1,12 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module TelegramAPI.Wrapper.Types.MessageInfo (MessageInfo (..)) where
+module Telegram.Bot.API.Wrapper.Types.MessageInfo (MessageInfo (..)) where
 
 import Data.Aeson ((.:), (.:?))
 import qualified Data.Aeson as Aeson
 import qualified Data.Text as T
-import qualified TelegramAPI.Wrapper.Types.ChatInfo as ChatInfo
-import qualified TelegramAPI.Wrapper.Types.SenderInfo as SenderInfo
+import qualified Telegram.Bot.API.Wrapper.Types.ChatInfo as ChatInfo
+import qualified Telegram.Bot.API.Wrapper.Types.SenderInfo as SenderInfo
 
 data MessageInfo = MessageInfo {getChatInfo :: ChatInfo.ChatInfo, getSender :: SenderInfo.SenderInfo, getText :: Maybe T.Text} deriving (Show)
 

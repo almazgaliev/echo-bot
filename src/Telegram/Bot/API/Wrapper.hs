@@ -1,17 +1,17 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module TelegramAPI.Wrapper (getUpdates, sendMessage)
+module Telegram.Bot.API.Wrapper (getUpdates, sendMessage)
 where
 
 import qualified Data.Aeson as Aeson (eitherDecode)
 import qualified Data.Word as Word
 import qualified Network.HTTP.Conduit as Conduit
 import Network.HTTP.Types (Status (statusCode))
-import qualified TelegramAPI
-import qualified TelegramAPI.Types as Types
-import qualified TelegramAPI.Types.Message as Message
-import qualified TelegramAPI.Types.UpdateParams as UpdateParams (UpdateParams)
-import qualified TelegramAPI.Wrapper.Types.Updates as Updates (UpdatesInfo)
+import qualified Telegram.Bot.API as TelegramAPI
+import qualified Telegram.Bot.API.Types as Types
+import qualified Telegram.Bot.API.Types.Message as Message
+import qualified Telegram.Bot.API.Types.UpdateParams as UpdateParams (UpdateParams)
+import qualified Telegram.Bot.API.Wrapper.Types.Updates as Updates (UpdatesInfo)
 
 getUpdates ::
   Conduit.Manager ->

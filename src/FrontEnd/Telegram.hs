@@ -25,14 +25,14 @@ import Logger ((.<))
 import qualified Logger
 import qualified Network.HTTP.Conduit as Conduit
 
-import qualified TelegramAPI.Types as Types
-import qualified TelegramAPI.Types.Message as Message
-import qualified TelegramAPI.Types.UpdateParams as UpdateParams
-import qualified TelegramAPI.Wrapper as TW
-import qualified TelegramAPI.Wrapper.Types.ChatInfo as ChatInfo
-import qualified TelegramAPI.Wrapper.Types.MessageInfo as MessageInfo
-import qualified TelegramAPI.Wrapper.Types.SenderInfo as SenderInfo
-import qualified TelegramAPI.Wrapper.Types.Updates as Updates
+import qualified Telegram.Bot.API.Types as Types
+import qualified Telegram.Bot.API.Types.Message as Message
+import qualified Telegram.Bot.API.Types.UpdateParams as UpdateParams
+import qualified Telegram.Bot.API.Wrapper as TW
+import qualified Telegram.Bot.API.Wrapper.Types.ChatInfo as ChatInfo
+import qualified Telegram.Bot.API.Wrapper.Types.MessageInfo as MessageInfo
+import qualified Telegram.Bot.API.Wrapper.Types.SenderInfo as SenderInfo
+import qualified Telegram.Bot.API.Wrapper.Types.Updates as Updates
 import qualified Util (wrapWithTicks)
 
 data Handle m a = Handle

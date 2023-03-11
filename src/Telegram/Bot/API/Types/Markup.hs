@@ -1,10 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module TelegramAPI.Types.Markup (Markup (..)) where
+module Telegram.Bot.API.Types.Markup (Markup (..)) where
 
 import Data.Aeson ((.=))
 import qualified Data.Aeson as Aeson
-import qualified TelegramAPI.Types.InlineKeyboardButton as InlineKeyboardButton
+import qualified Telegram.Bot.API.Types.InlineKeyboardButton as InlineKeyboardButton
 
 data Markup
   = InlineKeyboardMarkup {getText :: [[InlineKeyboardButton.InlineKeyboardButton]]} -- add optional types

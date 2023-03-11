@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections #-}
 
-module TelegramAPI (
+module Telegram.Bot.API (
   sendMessage,
   getUpdates,
 ) where
@@ -19,9 +19,9 @@ import qualified Network.HTTP.Simple as Simple (
   setRequestBodyURLEncoded,
   setRequestMethod,
  )
-import qualified TelegramAPI.Types as Types
-import qualified TelegramAPI.Types.Message as Message
-import qualified TelegramAPI.Types.UpdateParams as UpdateParams
+import qualified Telegram.Bot.API.Types as Types
+import qualified Telegram.Bot.API.Types.Message as Message
+import qualified Telegram.Bot.API.Types.UpdateParams as UpdateParams
 
 paramsToBody :: UpdateParams.UpdateParams -> [(BS.ByteString, BS.ByteString)]
 paramsToBody params = [("offset", BS.packChars . show $ UpdateParams.getOffset params)]

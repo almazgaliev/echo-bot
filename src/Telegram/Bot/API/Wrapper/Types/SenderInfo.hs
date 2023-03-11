@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module TelegramAPI.Wrapper.Types.SenderInfo (SenderInfo (..)) where
+module Telegram.Bot.API.Wrapper.Types.SenderInfo (SenderInfo (..)) where
 
 import Data.Aeson ((.:))
 import qualified Data.Aeson as Aeson

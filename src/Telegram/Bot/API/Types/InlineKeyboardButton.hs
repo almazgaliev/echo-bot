@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module TelegramAPI.Types.InlineKeyboardButton (InlineKeyboardButton, mkInlineCallBackButton) where
+module Telegram.Bot.API.Types.InlineKeyboardButton (InlineKeyboardButton, mkInlineCallBackButton) where
 
 import Data.Aeson ((.=))
 import qualified Data.Aeson as Aeson

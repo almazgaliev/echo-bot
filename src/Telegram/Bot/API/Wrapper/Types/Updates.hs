@@ -1,11 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module TelegramAPI.Wrapper.Types.Updates (UpdatesInfo (..), UpdateInfo (..)) where
+module Telegram.Bot.API.Wrapper.Types.Updates (UpdatesInfo (..), UpdateInfo (..)) where
 
 import Data.Aeson ((.:), (.:?))
 import qualified Data.Aeson as Aeson
 import qualified Data.Word as Word
-import qualified TelegramAPI.Wrapper.Types.MessageInfo as MessageInfo
+import qualified Telegram.Bot.API.Wrapper.Types.MessageInfo as MessageInfo
 
 data UpdateInfo = UpdateInfo {getUpdateId :: Word.Word64, getMessage :: Maybe MessageInfo.MessageInfo} deriving (Show)
 

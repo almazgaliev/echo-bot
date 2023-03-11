@@ -13,7 +13,7 @@ import qualified Data.Map as DM
 import qualified Logger
 import qualified Logger.Impl
 import qualified System.Exit as Exit (die)
-import qualified TelegramAPI.Types as Types
+import qualified Telegram.Bot.API.Types as Types
 
 main :: IO ()
 main = do
