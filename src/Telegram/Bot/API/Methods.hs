@@ -42,6 +42,7 @@ messageToBody message =
   catMaybes
     [ pure ("chat_id", BS.packChars . show . Chat.getChatId . Message.getChat $ message)
     , ("text",) . T.encodeUtf8 <$> Message.getText message
+    , ("entities",) . LBS.toStrict . Aeson.encode <$> Message.getEntities message 
     , ("reply_markup",) . LBS.toStrict . Aeson.encode <$> Message.getMarkup message
     ]
 

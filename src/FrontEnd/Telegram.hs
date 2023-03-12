@@ -37,6 +37,7 @@ import qualified Telegram.Bot.API.Wrapper.Types.Message as Message
 import qualified Telegram.Bot.API.Wrapper.Types.Updates as Updates
 import qualified Telegram.Bot.API.Wrapper.Types.User as User
 import qualified Text.Read as TR
+import qualified Debug.Trace as Trace
 
 data Handle m a = Handle
   { hBotHandle :: DM.Map Word.Word64 (EB.Handle m a)
@@ -89,7 +90,7 @@ processUpdates defaultHandle handleTele updates = do
         _ <- Methods.sendMessage manager token message
         let params =
               AnswerCallbackQueryParams.AnswerCallbackQueryParams
-                { AnswerCallbackQueryParams.getText = pure (T.append "Repetition count is set to: " . fromMaybe "" . Message.getText $ message)
+                { AnswerCallbackQueryParams.getText = pure (fromMaybe "" . Message.getText $ message)
                 , AnswerCallbackQueryParams.getCallbackQueryId = callBackId
                 }
         Methods.answerCallbackQuery manager token params
@@ -108,6 +109,7 @@ responseToMessage response chatId = case response of
       , Message.getMarkup = pure $ mkInlineKeyboard buttons
       , Message.getChat = Chat.Chat chatId
       , Message.getSender = Nothing
+      , Message.getEntities = Nothing
       }
 
 mkInlineKeyboard :: [(Int, EB.Event a)] -> Markup.Markup
@@ -152,9 +154,7 @@ getTextOfMsg :: Updates.Update -> Maybe T.Text
 getTextOfMsg = return <=< Message.getText <=< Updates.getMessage
 
 getUser :: Maybe Message.Message -> Maybe User.User
-getUser msg = do
-  msg' <- msg
-  Message.getSender msg'
+getUser msg = msg >>= Message.getSender
 
 getFirstName :: Maybe Message.Message -> Maybe T.Text
 getFirstName msg = User.getFirstName <$> getUser msg
