@@ -14,6 +14,8 @@ import qualified Logger
 import qualified Logger.Impl
 import qualified System.Exit as Exit (die)
 import qualified Telegram.Bot.API.Types as Types
+import qualified Telegram.Bot.API.Wrapper.Types.Message as Message
+import qualified Telegram.Bot.API.Wrapper.Types.Chat as Chat
 
 main :: IO ()
 main = do
@@ -81,7 +83,7 @@ makeBotHandleForPlainText logHandle = do
       , EB.hMessageFromText = id
       }
 
-makeBotHandleForTelegram :: Logger.Handle IO -> IO (EB.Handle IO a)
+makeBotHandleForTelegram :: Logger.Handle IO -> IO (EB.Handle IO Message.Message)
 makeBotHandleForTelegram logHandle = do
   botConfig <- Config.getBotConfig
   initialState <- either (Exit.die . T.unpack) pure $ EB.makeState botConfig
@@ -92,6 +94,6 @@ makeBotHandleForTelegram logHandle = do
       , EB.hModifyState' = DIOR.modifyIORef' stateRef
       , EB.hLogHandle = logHandle
       , EB.hConfig = botConfig
-      , EB.hTextFromMessage = error "Not Implemented"
-      , EB.hMessageFromText = error "Not Implemented"
+      , EB.hTextFromMessage = Message.getText
+      , EB.hMessageFromText = \x -> Message.Message {Message.getText = pure x, Message.getChat = Chat.Chat 0, Message.getMarkup = Nothing, Message.getSender = Nothing}
       }

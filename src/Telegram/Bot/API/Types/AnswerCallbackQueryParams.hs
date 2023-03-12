@@ -4,10 +4,11 @@ module Telegram.Bot.API.Types.AnswerCallbackQueryParams (AnswerCallbackQueryPara
 
 import Data.Aeson (KeyValue ((.=)), (.:), (.:?))
 import qualified Data.Aeson as Aeson
+import qualified Data.Text as T
 
 data AnswerCallbackQueryParams = AnswerCallbackQueryParams
-  { getCallbackQueryId :: String
-  , getText :: Maybe String
+  { getCallbackQueryId :: T.Text
+  , getText :: Maybe T.Text
   }
   deriving (Show)
 

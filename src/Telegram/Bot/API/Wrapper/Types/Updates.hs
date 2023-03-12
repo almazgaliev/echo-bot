@@ -1,24 +1,24 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Telegram.Bot.API.Wrapper.Types.Updates (UpdatesInfo (..), UpdateInfo (..)) where
+module Telegram.Bot.API.Wrapper.Types.Updates (Updates (..), Update (..)) where
 
 import Data.Aeson ((.:), (.:?))
 import qualified Data.Aeson as Aeson
 import qualified Data.Word as Word
 import qualified Telegram.Bot.API.Wrapper.Types.CallBackQuery as CallBackQuery
-import qualified Telegram.Bot.API.Wrapper.Types.MessageInfo as MessageInfo
+import qualified Telegram.Bot.API.Wrapper.Types.Message as Message
 
-data UpdateInfo = UpdateInfo
+data Update = Update
   { getUpdateId :: Word.Word64
-  , getMessage :: Maybe MessageInfo.MessageInfo
+  , getMessage :: Maybe Message.Message
   , getCallBack :: Maybe CallBackQuery.CallBackQuery
   }
   deriving (Show)
 
-instance Aeson.FromJSON UpdateInfo where
-  parseJSON = Aeson.withObject "UpdateInfo" $ \v -> UpdateInfo <$> v .: "update_id" <*> v .:? "message" <*> v .:? "callback_query"
+instance Aeson.FromJSON Update where
+  parseJSON = Aeson.withObject "Update" $ \v -> Update <$> v .: "update_id" <*> v .:? "message" <*> v .:? "callback_query"
 
-data UpdatesInfo = UpdatesInfo {ok :: Bool, getResult :: [UpdateInfo]} deriving (Show)
+data Updates = Updates {ok :: Bool, getResult :: [Update]} deriving (Show)
 
-instance Aeson.FromJSON UpdatesInfo where
-  parseJSON = Aeson.withObject "UpdatesInfo" $ \v -> UpdatesInfo <$> v .: "ok" <*> v .: "result"
+instance Aeson.FromJSON Updates where
+  parseJSON = Aeson.withObject "Updates" $ \v -> Updates <$> v .: "ok" <*> v .: "result"

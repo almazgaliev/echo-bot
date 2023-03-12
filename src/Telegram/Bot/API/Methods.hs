@@ -4,6 +4,7 @@
 module Telegram.Bot.API.Methods (
   sendMessage,
   getUpdates,
+  answerCallbackQuery,
 ) where
 
 import qualified Data.ByteString.Internal as BS (ByteString, packChars)
@@ -12,9 +13,7 @@ import qualified Network.HTTP.Conduit as Conduit (Manager, Response, httpLbs, pa
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as LBS
 import Data.Maybe (catMaybes)
-import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
-import qualified Data.Word as Word (Word64)
 import qualified Network.HTTP.Client as Network.HTTP.Client.Types
 import qualified Network.HTTP.Simple as Simple (
   setRequestBodyURLEncoded,
@@ -22,8 +21,9 @@ import qualified Network.HTTP.Simple as Simple (
  )
 import qualified Telegram.Bot.API.Types as Types
 import qualified Telegram.Bot.API.Types.AnswerCallbackQueryParams as AnswerCallbackQueryParams
-import qualified Telegram.Bot.API.Types.Message as Message
 import qualified Telegram.Bot.API.Types.UpdateParams as UpdateParams
+import qualified Telegram.Bot.API.Wrapper.Types.Chat as Chat
+import qualified Telegram.Bot.API.Wrapper.Types.Message as Message
 
 type RequestBody = [(BS.ByteString, BS.ByteString)]
 
@@ -33,15 +33,15 @@ updateParamsToBody params = [("offset",) . BS.packChars . show $ UpdateParams.ge
 answerParamsToBody :: AnswerCallbackQueryParams.AnswerCallbackQueryParams -> RequestBody
 answerParamsToBody params =
   catMaybes
-    [ pure . ("callback_query_id",) . BS.packChars $ AnswerCallbackQueryParams.getCallbackQueryId params
-    , ("text",) . BS.packChars <$> AnswerCallbackQueryParams.getText params
+    [ pure . ("callback_query_id",) . T.encodeUtf8 $ AnswerCallbackQueryParams.getCallbackQueryId params
+    , ("text",) . T.encodeUtf8 <$> AnswerCallbackQueryParams.getText params -- BS.packChars
     ]
 
-messageToBody :: Word.Word64 -> Message.Message -> RequestBody
-messageToBody chatId message =
+messageToBody :: Message.Message -> RequestBody
+messageToBody message =
   catMaybes
-    [ pure ("chat_id", BS.packChars . show $ chatId)
-    , ("text",) . T.encodeUtf8 . T.pack <$> Message.getText message
+    [ pure ("chat_id", BS.packChars . show . Chat.getChatId . Message.getChat $ message)
+    , ("text",) . T.encodeUtf8 <$> Message.getText message
     , ("reply_markup",) . LBS.toStrict . Aeson.encode <$> Message.getMarkup message
     ]
 
@@ -55,9 +55,9 @@ apiPOSTRequest token method body = do
     Simple.setRequestMethod "POST" $
       Simple.setRequestBodyURLEncoded body request
 
-sendMessage :: Conduit.Manager -> Types.APIToken -> Word.Word64 -> Message.Message -> IO (Conduit.Response LBS.ByteString)
-sendMessage manager token chatId message = do
-  let body = messageToBody chatId message
+sendMessage :: Conduit.Manager -> Types.APIToken -> Message.Message -> IO (Conduit.Response LBS.ByteString)
+sendMessage manager token message = do
+  let body = messageToBody message
   request' <- apiPOSTRequest token "/sendMessage" body
   Conduit.httpLbs request' manager
 
