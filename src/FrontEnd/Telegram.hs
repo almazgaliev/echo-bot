@@ -34,10 +34,12 @@ import qualified Telegram.Bot.API.Wrapper.Types.Chat as Chat
 import qualified Telegram.Bot.API.Wrapper.Types.InlineKeyboardButton as InlineKeyboardButton
 import qualified Telegram.Bot.API.Wrapper.Types.Markup as Markup
 import qualified Telegram.Bot.API.Wrapper.Types.Message as Message
+import qualified Telegram.Bot.API.Types.SendPhotoParams as Photo
 import qualified Telegram.Bot.API.Wrapper.Types.Updates as Updates
 import qualified Telegram.Bot.API.Wrapper.Types.User as User
 import qualified Text.Read as TR
-import qualified Debug.Trace as Trace
+
+data TelegramMessage = Message Message.Message | Photo Photo.SendPhotoParams
 
 data Handle m a = Handle
   { hBotHandle :: DM.Map Word.Word64 (EB.Handle m a)
@@ -87,7 +89,7 @@ processUpdates defaultHandle handleTele updates = do
       let manager = hManager handleTele
       let token = hToken handleTele
       forM_ responses' $ \message -> do
-        _ <- Methods.sendMessage manager token message
+        -- _ <- Methods.sendMessage manager token message
         let params =
               AnswerCallbackQueryParams.AnswerCallbackQueryParams
                 { AnswerCallbackQueryParams.getText = pure (fromMaybe "" . Message.getText $ message)
@@ -108,7 +110,7 @@ responseToMessage response chatId = case response of
       { Message.getText = pure txt
       , Message.getMarkup = pure $ mkInlineKeyboard buttons
       , Message.getChat = Chat.Chat chatId
-      , Message.getSender = Nothing
+      , Message.getFrom = Nothing
       , Message.getEntities = Nothing
       }
 
@@ -118,12 +120,12 @@ mkInlineKeyboard lst = Markup.InlineKeyboard [(\(x, _) -> let x' = T.pack $ show
 -- a = const (EB.State (read msg))
 
 getChatId :: Updates.Update -> Maybe Word.Word64
-getChatId = return . Chat.getChatId . Message.getChat <=< Updates.getMessage
+getChatId = return . Chat.getId . Message.getChat <=< Updates.getMessage
 
 getIdAndMessage :: Updates.Update -> Maybe (Word.Word64, EB.Event Message.Message)
 getIdAndMessage upd = do
   m <- Updates.getMessage upd
-  let chatId = Chat.getChatId . Message.getChat $ m
+  let chatId = Chat.getId . Message.getChat $ m
   return (chatId, EB.MessageEvent m)
 
 -- getIdAndCallback :: Updates.Update -> Maybe Message.Message
@@ -131,8 +133,8 @@ getIdAndCallback :: Updates.Update -> Maybe (Word.Word64, T.Text, EB.Event a)
 getIdAndCallback upd = do
   cb <- Updates.getCallBack upd
   m <- CallBackQuery.getMessage cb
-  let chatId = Chat.getChatId . Message.getChat $ m
-  let callbackId = CallBackQuery.getCallbackId cb
+  let chatId = Chat.getId . Message.getChat $ m
+  let callbackId = CallBackQuery.getId cb
   data' <- CallBackQuery.getData cb
   return (chatId, callbackId, EB.SetRepetitionCountEvent (fromMaybe 1 $ (TR.readMaybe . T.unpack) data'))
 
@@ -154,13 +156,13 @@ getTextOfMsg :: Updates.Update -> Maybe T.Text
 getTextOfMsg = return <=< Message.getText <=< Updates.getMessage
 
 getUser :: Maybe Message.Message -> Maybe User.User
-getUser msg = msg >>= Message.getSender
+getUser msg = msg >>= Message.getFrom
 
 getFirstName :: Maybe Message.Message -> Maybe T.Text
 getFirstName msg = User.getFirstName <$> getUser msg
 
 getUsername :: Maybe Message.Message -> Maybe T.Text
-getUsername msg = User.getUserName <$> getUser msg
+getUsername msg = User.getUsername <$> getUser msg
 
 getMaxUpdateId :: [Updates.Update] -> Word.Word64
 getMaxUpdateId = List.foldl' max 0 . fmap Updates.getUpdateId

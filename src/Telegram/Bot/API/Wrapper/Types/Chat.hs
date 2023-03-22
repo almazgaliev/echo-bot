@@ -1,12 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Telegram.Bot.API.Wrapper.Types.Chat (Chat (..)) where
 
-import Data.Aeson ((.:))
 import qualified Data.Aeson as Aeson
+import qualified Data.Aeson.TH as ATH
 import qualified Data.Word as Word
+import qualified Util
 
-newtype Chat = Chat {getChatId :: Word.Word64} deriving (Show)
+newtype Chat = Chat {getId :: Word.Word64} deriving (Show)
 
-instance Aeson.FromJSON Chat where
-  parseJSON = Aeson.withObject "Chat" $ \v -> Chat <$> v .: "id"
+$(ATH.deriveJSON ATH.defaultOptions {Aeson.fieldLabelModifier = drop 3 . Util.toSnakeCase, Aeson.omitNothingFields = True} ''Chat)

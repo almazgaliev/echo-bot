@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Telegram.Bot.API.Wrapper.Types.User (User (..)) where
 
@@ -6,14 +7,15 @@ import Data.Aeson ((.:))
 import qualified Data.Aeson as Aeson
 import qualified Data.Text as T
 import qualified Data.Word as Word
+import qualified Data.Aeson.TH as ATH
+import qualified Util
 
 data User = User
-  { getUserId :: Word.Word64
+  { getId :: Word.Word64
   , getFirstName :: T.Text
-  , getUserName :: T.Text
+  , getUsername :: T.Text
   }
   deriving (Show)
 
-instance Aeson.FromJSON User where
-  parseJSON = Aeson.withObject "User" $ \v ->
-    User <$> v .: "id" <*> v .: "first_name" <*> v .: "username"
+
+$(ATH.deriveJSON ATH.defaultOptions{Aeson.fieldLabelModifier = drop 3 . Util.toSnakeCase, Aeson.omitNothingFields = True} ''User)

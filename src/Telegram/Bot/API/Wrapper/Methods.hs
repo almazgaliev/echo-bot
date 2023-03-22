@@ -3,6 +3,8 @@
 module Telegram.Bot.API.Wrapper.Methods (getUpdates, sendMessage, answerCallbackQuery)
 where
 
+
+
 import qualified Data.Aeson as Aeson (eitherDecode)
 import qualified Network.HTTP.Conduit as Conduit
 import Network.HTTP.Types (Status (statusCode))
@@ -11,6 +13,7 @@ import qualified Telegram.Bot.API.Types as Types
 import qualified Telegram.Bot.API.Types.AnswerCallbackQueryParams as AnswerCallbackQueryParams
 import qualified Telegram.Bot.API.Types.UpdateParams as UpdateParams (UpdateParams)
 import qualified Telegram.Bot.API.Wrapper.Types.Message as Message
+import qualified Telegram.Bot.API.Types.SendPhotoParams as Photo
 import qualified Telegram.Bot.API.Wrapper.Types.Updates as Updates (Updates)
 
 getUpdates ::
@@ -39,4 +42,9 @@ sendMessage manager token message = do
 answerCallbackQuery :: Conduit.Manager -> Types.APIToken -> AnswerCallbackQueryParams.AnswerCallbackQueryParams -> IO ()
 answerCallbackQuery m t p = do
   _ <- Methods.answerCallbackQuery m t p
+  return () -- TODO handle errors
+
+sendPhoto :: Conduit.Manager -> Types.APIToken -> Photo.SendPhotoParams -> IO ()
+sendPhoto manager token photo = do
+  _ <- Methods.sendPhoto manager token photo
   return () -- TODO handle errors

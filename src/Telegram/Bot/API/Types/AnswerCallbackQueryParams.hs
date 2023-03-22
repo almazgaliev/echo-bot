@@ -1,10 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Telegram.Bot.API.Types.AnswerCallbackQueryParams (AnswerCallbackQueryParams (..)) where
 
-import Data.Aeson (KeyValue ((.=)), (.:), (.:?))
 import qualified Data.Aeson as Aeson
 import qualified Data.Text as T
+import qualified Data.Aeson.TH as ATH
+import qualified Util
 
 data AnswerCallbackQueryParams = AnswerCallbackQueryParams
   { getCallbackQueryId :: T.Text
@@ -12,8 +14,4 @@ data AnswerCallbackQueryParams = AnswerCallbackQueryParams
   }
   deriving (Show)
 
-instance Aeson.FromJSON AnswerCallbackQueryParams where
-  parseJSON = Aeson.withObject "AnswerCallbackQueryParams" $ \v -> AnswerCallbackQueryParams <$> v .: "callback_query_id" <*> v .:? "text"
-
-instance Aeson.ToJSON AnswerCallbackQueryParams where
-  toJSON (AnswerCallbackQueryParams {getCallbackQueryId = queryId, getText = text}) = Aeson.object ["callback_query_id" .= queryId, "text" .= text]
+$(ATH.deriveJSON ATH.defaultOptions {Aeson.fieldLabelModifier = drop 3 . Util.toSnakeCase, Aeson.omitNothingFields = True} ''AnswerCallbackQueryParams)

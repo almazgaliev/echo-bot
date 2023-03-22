@@ -1,10 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Telegram.Bot.API.Wrapper.Types.MessageEntity (MessageEntity (..)) where
 
 import Data.Aeson ((.=))
 import qualified Data.Aeson as Aeson
+import qualified Data.Aeson.TH as ATH
 import Data.Aeson.Types ((.:))
+import qualified Util
 
 data MessageEntity = MessageEntity
   { getType :: String
@@ -13,20 +16,4 @@ data MessageEntity = MessageEntity
   }
   deriving (Show)
 
-instance Aeson.ToJSON MessageEntity where
-  toJSON (MessageEntity t o l) =
-    Aeson.object
-      [ "type" .= t
-      , "offset" .= o
-      , "length" .= l
-      ]
-
-instance Aeson.FromJSON MessageEntity where
-  parseJSON = Aeson.withObject "MessageEntity" $ \v ->
-    MessageEntity
-      <$> v
-      .: "type"
-      <*> v
-      .: "offset"
-      <*> v
-      .: "length"
+$(ATH.deriveJSON ATH.defaultOptions {Aeson.fieldLabelModifier = drop 3 . Util.toSnakeCase, Aeson.omitNothingFields = True} ''MessageEntity)
