@@ -1,4 +1,6 @@
-module Util (padLeft, padRight, padRight1, replaceAll, wrapWithTicks) where
+module Util (padLeft, padRight, padRight1, replaceAll, wrapWithTicks, toSnakeCase) where
+
+import qualified Data.Char as Char
 
 {-# INLINE padLeft #-}
 padLeft :: a -> Int -> [a] -> [a]
@@ -25,9 +27,15 @@ replaceAll x a b =
    in
     prefix ++ replaceAll (drop pl1 x) a b
 
-
 wrapInto :: [a] -> [a] -> [a]
 wrapInto s = (s ++) . (++ s)
 
 wrapWithTicks :: String -> String
 wrapWithTicks = wrapInto "'"
+
+toSnakeCase :: String -> String
+toSnakeCase = drop 1 . concatMap helper
+ where
+  helper x
+    | Char.isUpper x = '_' : Char.toLower x : ""
+    | otherwise = [x]
