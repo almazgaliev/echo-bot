@@ -128,7 +128,6 @@ getIdAndMessage upd = do
   let chatId = Chat.getId . Message.getChat $ m
   return (chatId, EB.MessageEvent m)
 
--- getIdAndCallback :: Updates.Update -> Maybe Message.Message
 getIdAndCallback :: Updates.Update -> Maybe (Word.Word64, T.Text, EB.Event a)
 getIdAndCallback upd = do
   cb <- Updates.getCallBack upd
